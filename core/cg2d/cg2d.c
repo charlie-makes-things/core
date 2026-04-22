@@ -975,6 +975,9 @@ int cg2d_add_layer(cg2d_t *c2d, cg2d_blend blend,cg_texture *tex,SDL_GPUShader* 
 			break;
 	}
 
+	buf.vbufsz=CG2D_MAX_VERTICES;
+    buf.vbuflen=0;
+    buf.verts=NULL;
 
 	buf.RenderPipeline=  SDL_CreateGPUGraphicsPipeline(
        c2d->device,
@@ -988,8 +991,8 @@ int cg2d_add_layer(cg2d_t *c2d, cg2d_blend blend,cg_texture *tex,SDL_GPUShader* 
                         .color_blend_op = SDL_GPU_BLENDOP_ADD,
                         .alpha_blend_op = SDL_GPU_BLENDOP_ADD,
                         .src_color_blendfactor = src,
+                        .src_alpha_blendfactor = src,                        
                         .dst_color_blendfactor = dst,
-                        .src_alpha_blendfactor = src,
                         .dst_alpha_blendfactor = dst,
                     }
                 }}
@@ -1016,12 +1019,10 @@ int cg2d_add_layer(cg2d_t *c2d, cg2d_blend blend,cg_texture *tex,SDL_GPUShader* 
         }
     );
 
-    buf.vbufsz=CG2D_MAX_VERTICES;
-    buf.vbuflen=0;
-    buf.verts=NULL;
+    
 
     
-    arrsetcap(buf.verts,buf.vbufsz);    
+    arrsetcap(buf.verts,10000);    
 
     arrput(c2d->buffers,buf);
 
@@ -1290,7 +1291,11 @@ void _cg2d_add_vertex(cg2d_t *c2d,
 					   float y,
 					   float type,
 					   float mode){
-
+	//SDL_assert_release(arrlen(c2d->buffers[c2d->currentBuffer].verts)+1<CG2D_MAX_VERTICES);
+	if(arrlen(c2d->buffers[c2d->currentBuffer].verts)+1>=CG2D_MAX_VERTICES){
+		SDL_Log("WARNING - vertices exceed maximum. change CG2D_MAX_VERTICES if you need extra\n");
+		return;
+	}
 	cg2d_vertex vert;
 
 	vert.x=x;

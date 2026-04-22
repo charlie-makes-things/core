@@ -31,26 +31,25 @@ set defines,globals etc. for core stuff only
 void print_sdl_versions();
 
 //init function definitions
-SDL_AppResult init_sdl();
+SDL_AppResult init_sdl(char *assetPath);
 SDL_AppResult init_ttf();
 SDL_AppResult init_audio(MIX_Mixer **mixer);
 SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title);
 
 //this function wraps the above init function into one call
-SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title,MIX_Mixer **mixer);
+SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title,MIX_Mixer **mixer,char *assetPath,float popupFontScale);
 
 static char WINDOW_TITLE[256];  
 static int WINDOW_WIDTH =  1280;
 static int WINDOW_HEIGHT = 720;
 
 const char* BasePath=NULL;
+const char* AssetPath=NULL;
 
 //core stuff in order
 #include "texture/texture.c"
-
 #include "filesys/filesys.c"
 #include "loaders.c"
-
 #include "atlas/texAtlas.c"
 #include "cg2d/cg2d.c"
 #include "popupmessage/popupmesage.c"
@@ -58,17 +57,17 @@ const char* BasePath=NULL;
 
 
 
-SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title,MIX_Mixer **mixer){
+SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title,MIX_Mixer **mixer,char *assetPath,float popupFontScale){
 	 //init stuff
-    if(init_sdl()==SDL_APP_FAILURE) return SDL_APP_FAILURE;
+    if(init_sdl(assetPath)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     if(init_ttf()==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     if(init_audio(mixer)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     //this opens a window and sets up the gpu device for it.
-    if(init_graphics(dev,win,WINDOW_WIDTH,WINDOW_HEIGHT,WINDOW_TITLE)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
+    if(init_graphics(dev,win,width,height,title)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     //input plays sounds when you connect/disconnect controllers so send it the mixer handle
     //input adds a mouse and a keyboard controller by default
     if(input_init(*mixer)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
-    cg_popup_message_init();
+    cg_popup_message_init(popupFontScale);
     return SDL_APP_CONTINUE;
 }
 
@@ -91,12 +90,13 @@ void print_sdl_versions(){
 
 
 
-SDL_AppResult init_sdl(){
+SDL_AppResult init_sdl(char *assetPath){
 	if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD | SDL_INIT_EVENTS | SDL_INIT_HAPTIC)) {
         SDL_Log("Couldn't initialize SDL: %s", SDL_GetError());
         return SDL_APP_FAILURE;
     }
     BasePath = SDL_GetBasePath();
+    AssetPath= assetPath;
 
     print_sdl_versions();
     return SDL_APP_CONTINUE;
@@ -128,6 +128,11 @@ SDL_AppResult init_audio(MIX_Mixer **mixer){
 SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title){
 	//create device and window
  	SDL_strlcpy(WINDOW_TITLE,title,sizeof(WINDOW_TITLE));
+    WINDOW_WIDTH=width;
+    WINDOW_HEIGHT=height;
+
+    SDL_Log("opening %d * %d window: %s\n",WINDOW_WIDTH,WINDOW_HEIGHT, WINDOW_TITLE);
+
     SDL_GPUDevice *device = SDL_CreateGPUDevice(
         SDL_GPU_SHADERFORMAT_SPIRV |
         SDL_GPU_SHADERFORMAT_DXIL |
@@ -142,7 +147,7 @@ SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int
     SDL_Log("GPU backend: %s", SDL_GetGPUDeviceDriver(device));
 
     SDL_Window *window = SDL_CreateWindow(
-    title, width, height, 0);
+    WINDOW_TITLE, width, height, 0);
     if (!window) {
         SDL_Log("Failed to create window: %s", SDL_GetError());
         SDL_DestroyGPUDevice(device);

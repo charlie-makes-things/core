@@ -70,23 +70,30 @@ void *load_file_storage(char *url,size_t *len){
     void *dst;
     Uint64 dstLen = 0;
 
-    if (SDL_GetStorageFileSize(title, url, &dstLen) && dstLen > 0) {
+    char *fullURL=NULL;
+    SDL_asprintf(&fullURL,"%s%s",AssetPath,url);
+    SDL_Log("loading storage file %s\n",fullURL );
+
+    if (SDL_GetStorageFileSize(title, fullURL, &dstLen) && dstLen > 0) {
        
          dst = SDL_malloc(dstLen);
-        if (!SDL_ReadStorageFile(title, url, dst, dstLen)) {
+        if (!SDL_ReadStorageFile(title, fullURL, dst, dstLen)) {
             // Something bad happened!
             printf("storage file %s read failed\n",url);
+            SDL_free(fullURL);
             return NULL;
         }
         
      } else {
     
          SDL_Log("couldn't load storage file %s\n",url);
+         SDL_free(fullURL);
          return NULL;
     
     }
 
     SDL_CloseStorage(title);
+    SDL_free(fullURL);
 
     *len=dstLen;
     return dst;

@@ -30,9 +30,10 @@ typedef struct cg_popup_message_handler{
 }cg_popup_message_handler;
 
 static cg_popup_message_handler _popup_messages;
+static float _popup_font_scale;
 
-void cg_popup_message_init(){
-	
+void cg_popup_message_init(float fontScale){
+	_popup_font_scale=fontScale;
 }
 
 void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image *image,float fontScale){
@@ -42,10 +43,10 @@ void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image 
 	p.data=data;
 	p.life=180;
 	p.image=image;
-	p.fontScale=fontScale;
+	p.fontScale=fontScale*_popup_font_scale;
 
-	float mw=cg2d_text_width(c2d,message)*fontScale;
-	float dw=cg2d_text_width(c2d,data)*fontScale;
+	float mw=cg2d_text_width(c2d,message)*p.fontScale;
+	float dw=cg2d_text_width(c2d,data)*p.fontScale;
 
 	p.width=(SDL_max(mw,dw)*1.2)+100;
 
@@ -76,10 +77,12 @@ void popup_messages_update(){
 	}
 }
 
-void popup_messages_draw( cg2d_t *c2d, int spriteLayer,int fontLayer){
+void popup_messages_draw( cg2d_t *c2d, int spriteLayer,int fontLayer ){
 	cg2d_set_handle(c2d,0,0);
 	cg2d_set_scale(c2d,1,1);
 	cg2d_set_rotation(c2d,0);
+	cg2d_set_alpha(c2d,1.0);
+	cg2d_set_skew(c2d,0.0,0.0);
 
 	for(int i=arrlen(_popup_messages.messages)-1;i>=0;i--){
 		cg_popup_message *p=&_popup_messages.messages[i];

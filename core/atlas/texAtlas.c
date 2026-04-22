@@ -119,8 +119,8 @@ SDL_Surface* _atlas_load_image(const char* imageFilename)
 	char fullPath[256];
 	SDL_Surface *result;
 
-	SDL_snprintf(fullPath, sizeof(fullPath), "images/%s.png", imageFilename);
-
+	SDL_snprintf(fullPath, sizeof(fullPath), "image/%s.png", imageFilename);
+	printf("fullpath is %s\n",fullPath );
 	result = load_PNG_storage(fullPath);
 	return result;
 }
