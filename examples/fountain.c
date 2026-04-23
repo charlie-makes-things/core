@@ -93,8 +93,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     //load functions are relative to this.
     if(core_init(&state->Device,
     			 &state->Window, 
-    			 1280, 
-    			 720,
+    			 0, 
+    			 0,
     			 "Particle Fountain Example",
     			 &state->mixer,
     			 "assets/",
@@ -102,6 +102,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     {	SDL_Log("failed to init core.\n");return SDL_APP_FAILURE;    }
 
     *appstate = state;
+
+
 
 
 // Create and load the shaders
@@ -132,6 +134,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 //add a popup message with a long name to test the variable width of messages is working
     popup_messags_add_message("Particle Fountain","example",&c2d, blobImage,0.2);
   
+    
+
 
 	return SDL_APP_CONTINUE;
 }

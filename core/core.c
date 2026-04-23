@@ -23,6 +23,7 @@ set defines,globals etc. for core stuff only
 #include <string.h>
 #include <float.h>
 #include <stdlib.h>
+#include <limits.h>
 
 //json reader - json.h from https://github.com/sheredom/json.h
 #include "../include/json.h"
@@ -47,6 +48,7 @@ const char* BasePath=NULL;
 const char* AssetPath=NULL;
 
 //core stuff in order
+#include "video_util.c"
 #include "texture/texture.c"
 #include "filesys/filesys.c"
 #include "loaders.c"
@@ -131,6 +133,22 @@ SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int
     WINDOW_WIDTH=width;
     WINDOW_HEIGHT=height;
 
+
+    if(video_init()==SDL_APP_FAILURE){return SDL_APP_FAILURE;}
+
+    if(WINDOW_WIDTH==0 || WINDOW_HEIGHT==0){
+        SDL_Log("display resolution unset, calculating window size...");
+        WINDOW_WIDTH=video_largest_window->w;
+        WINDOW_HEIGHT=video_largest_window->h;
+        video_current_mode=video_largest_window;
+    }else{
+        SDL_DisplayMode *found=video_find_mode(WINDOW_WIDTH,WINDOW_HEIGHT);
+        WINDOW_WIDTH=found->w;
+        WINDOW_HEIGHT=found->h;
+        video_current_mode=found;
+        SDL_Log("using closest matched mode %d x %d ' %.3f\n",found->w,found->h,found->refresh_rate);
+    }
+
     SDL_Log("opening %d * %d window: %s\n",WINDOW_WIDTH,WINDOW_HEIGHT, WINDOW_TITLE);
 
     SDL_GPUDevice *device = SDL_CreateGPUDevice(
@@ -147,7 +165,7 @@ SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int
     SDL_Log("GPU backend: %s", SDL_GetGPUDeviceDriver(device));
 
     SDL_Window *window = SDL_CreateWindow(
-    WINDOW_TITLE, width, height, 0);
+    WINDOW_TITLE, WINDOW_WIDTH,WINDOW_HEIGHT,  0);
     if (!window) {
         SDL_Log("Failed to create window: %s", SDL_GetError());
         SDL_DestroyGPUDevice(device);

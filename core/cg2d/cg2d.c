@@ -662,7 +662,7 @@ void cg2d_init(cg2d_t *c2d,SDL_Window *window,SDL_GPUDevice *device, int scrnW,i
     int scw,sch;
     SDL_GetWindowSize(window,&sw,&sh);
     SDL_GetWindowSizeInPixels(window, &scw, &sch);
-   // printf("\n\nwindows size %d, %d, pixels %d, %d, density %f, scale %f \n\n",sw,sh,scw,sch,SDL_GetWindowPixelDensity(window),SDL_GetWindowDisplayScale(window) );
+   
     c2d->winW=scw/sw;
     c2d->winH=sch/sh;
     
@@ -1159,6 +1159,14 @@ void cg2d_set_viewport(cg2d_t *c2d,int x, int y, int w, int h){
 	c2d->vpy=y;
 	c2d->vpw=w;
 	c2d->vph=h;
+
+	int sw,sh;
+    int scw,sch;
+	SDL_GetWindowSize(c2d->window,&sw,&sh);
+    SDL_GetWindowSizeInPixels(c2d->window, &scw, &sch);
+   
+    c2d->winW=scw/sw;
+    c2d->winH=sch/sh;
 }
 
 //returns scaled coords for use with SDL_SetGPUViewport
