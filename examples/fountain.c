@@ -112,7 +112,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     if (fragmentShader == NULL) { SDL_Log("Failed to create fragment shader!"); return SDL_APP_FAILURE; }
 
 //load texture atlas
-    if(atlas_init(&atlas,"data/bc26Atlas.json",state->Device,ATLAS_FILTER_NEAREST)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
+    if(atlas_init(&atlas,"data/bc26Atlas.json","images/",state->Device,ATLAS_FILTER_NEAREST)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
   
  //initialise cg2d
     cg2d_init(&c2d,state->Window,state->Device, WINDOW_WIDTH,WINDOW_HEIGHT);

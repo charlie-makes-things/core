@@ -58,6 +58,7 @@ typedef struct texAtlas{
 	texAtlasImage *images;
 	cg_texture tex;
 	char name[256];
+	char imagePath[256];
 	int w,h;
 	size_t count;
 	bool initialised;
@@ -80,13 +81,13 @@ typedef struct texAtlas{
 //these do.
 //the uv coords are calculated here for ease. 
 //RETURNS: returns 0 if everything is ok otherwise check log for where things went wrong
-int atlas_init(texAtlas *tex, char *fullPath, SDL_GPUDevice *device, atlas_tex_filter filter);
+int atlas_init(texAtlas *tex, char *fullPath, char *imagePath, SDL_GPUDevice *device, atlas_tex_filter filter);
 
 //loads the image from file into an sdl_surface struct. normally you wouldn't
 //use this function as atlas_init does all this for you. if you do use this
 //separately, make sure to call SDL_DestroySurface(); on the SDL_Surface this
 //function returns
-SDL_Surface* _atlas_load_image(const char* imageFilename);
+SDL_Surface* _atlas_load_image(const char *imagePath,const char* imageFilename);
 
 //loads the texture and sample onto the gpu. once this is done you can then
 //access the texture with myAtlas.tex. you probably won't need to call this
@@ -114,12 +115,12 @@ void atlas_free(texAtlas *atlas,SDL_GPUDevice *device);
 //function code
 //*******************************************************************
 
-SDL_Surface* _atlas_load_image(const char* imageFilename)
+SDL_Surface* _atlas_load_image(const char *imagePath,const char* imageFilename)
 {
 	char fullPath[256];
 	SDL_Surface *result;
 
-	SDL_snprintf(fullPath, sizeof(fullPath), "image/%s.png", imageFilename);
+	SDL_snprintf(fullPath, sizeof(fullPath), "%s%s.png",imagePath, imageFilename);
 	printf("fullpath is %s\n",fullPath );
 	result = load_PNG_storage(fullPath);
 	return result;
@@ -133,7 +134,7 @@ SDL_Surface* _atlas_load_image(const char* imageFilename)
 int _atlas_load_texture(texAtlas *atlas, SDL_GPUDevice *device,atlas_tex_filter filter){
 
 	 // Load the image data
-    SDL_Surface *imageData = _atlas_load_image(atlas->name);
+    SDL_Surface *imageData = _atlas_load_image(atlas->imagePath,atlas->name);
     if (imageData == NULL)
     {
         SDL_Log("Could not load atlas image data on path %s.png",atlas->name);
@@ -223,7 +224,7 @@ int _atlas_load_texture(texAtlas *atlas, SDL_GPUDevice *device,atlas_tex_filter 
 //*******************************************************************
 //*******************************************************************
 
-int atlas_init(texAtlas *tex, char *fullPath,  SDL_GPUDevice *device,atlas_tex_filter filter){
+int atlas_init(texAtlas *tex, char *fullPath, char *imagePath,  SDL_GPUDevice *device,atlas_tex_filter filter){
 	
 	if(tex->initialised==true){
 		SDL_Log("can't initialise atlas twice! create a new one to load more stuff\n");
@@ -233,6 +234,7 @@ int atlas_init(texAtlas *tex, char *fullPath,  SDL_GPUDevice *device,atlas_tex_f
 	size_t fileSize;
 	char *jsonData=(char*)load_file_storage(fullPath,&fileSize);
 
+	SDL_strlcpy(tex->imagePath,imagePath,sizeof(imagePath));
 	
 
 	SDL_Log("%s\n",SDL_GetError() );
