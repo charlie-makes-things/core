@@ -98,7 +98,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     			 "Particle Fountain Example",
     			 &state->mixer,
     			 "assets/",
-    			 5.0)==SDL_APP_FAILURE)
+    			 3.0)==SDL_APP_FAILURE)
     {	SDL_Log("failed to init core.\n");return SDL_APP_FAILURE;    }
 
     *appstate = state;
@@ -119,7 +119,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
  //get the image
     blobImage=cg2d_load_atlas_image(&c2d,&atlas,"blob.png");
  //load the font for popup messages
-    silverFont=cg2d_load_image_font(&c2d,"/fonts/Silver.ttf",50,SDL_GPU_FILTER_LINEAR);
+    silverFont=cg2d_load_image_font(&c2d,"/fonts/roboto/Roboto-Regular.ttf",50,SDL_GPU_FILTER_LINEAR);
 
 //layers to draw to
     sparkLayer=cg2d_add_layer(&c2d,CG2D_LIGHTBLEND,&atlas.tex,vertexShader,fragmentShader,SDL_GPU_LOADOP_CLEAR);

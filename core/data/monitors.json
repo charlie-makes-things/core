@@ -1,0 +1,140 @@
+{
+	"resolutions": [
+		{
+		"type": "monitor",
+		"desc": "HD (720p)",
+		"xres": 1280,
+		"yres": 720,
+		"xar": 16,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "Full HD (1080p)",
+		"xres": 1920,
+		"yres": 1080,
+		"xar": 16,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "WUXGA",
+		"xres": 1920,
+		"yres": 1200,
+		"xar": 16,
+		"yar": 10
+		},
+		{
+		"type": "monitor",
+		"desc": "QHD (1440p)", 
+		"xres": 2560,
+		"yres": 1440,
+		"xar": 16,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "WQHD",
+		"xres": 3440,
+		"yres": 1440,
+		"xar": 21,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "UHD 4K",
+		"xres": 3840,
+		"yres": 2160,
+		"xar": 16,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "5K",
+		"xres": 5120,
+		"yres": 2880,
+		"xar": 16,
+		"yar": 9 
+		},
+		{
+		"type": "monitor",
+		"desc": "8K UHD",
+		"xres": 7680,
+		"yres": 4320,
+		"xar": 16,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "HD 16:10",
+		"xres": 1280,
+		"yres": 800,
+		"xar": 16,
+		"yar": 10
+		},
+		{
+		"type": "monitor",
+		"desc": "HD 16:10",
+		"xres": 2560,
+		"yres": 1600,
+		"xar": 16,
+		"yar": 10
+		},
+		{
+		"type": "monitor",
+		"desc": "UW 21:9",
+		"xres": 2560,
+		"yres": 1080,
+		"xar": 21,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "UW 21:9",
+		"xres": 5120,
+		"yres": 2160,
+		"xar": 21,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "HD 3:2",
+		"xres": 1500,
+		"yres": 1000,
+		"xar": 3,
+		"yar": 	2
+		},
+		{
+		"type": "monitor",
+		"desc": "HD 3:2",
+		"xres": 2256,
+		"yres": 1504,
+		"xar": 3,
+		"yar": 	2
+		},
+		{
+		"type": "monitor",
+		"desc": "HD 3:2",
+		"xres": 3000,
+		"yres": 2000,
+		"xar": 3,
+		"yar": 	2
+		},
+		{
+		"type": "monitor",
+		"desc": "SUW 32:9",
+		"xres": 3840,
+		"yres": 1080,
+		"xar": 32,
+		"yar": 	9
+		},
+		{
+		"type": "monitor",
+		"desc": "SUW 32:9",
+		"xres": 5120,
+		"yres": 1440,
+		"xar": 32,
+		"yar": 	9
+		}
+	]
+}
