@@ -51,7 +51,8 @@ void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image 
 	p.width=(SDL_max(mw,dw)*1.2)+100;
 
 	p.x=0;
-	p.y=WINDOW_HEIGHT;			
+	p.y=WINDOW_HEIGHT;
+	SDL_Log("popup window height is %f\n",p.y);			
 
 	arrpush(_popup_messages.messages,p);
 
@@ -83,7 +84,7 @@ void popup_messages_draw( cg2d_t *c2d, int spriteLayer,int fontLayer ){
 	cg2d_set_rotation(c2d,0);
 	cg2d_set_alpha(c2d,1.0);
 	cg2d_set_skew(c2d,0.0,0.0);
-
+	cg2d_set_layer(c2d,spriteLayer);
 	for(int i=arrlen(_popup_messages.messages)-1;i>=0;i--){
 		cg_popup_message *p=&_popup_messages.messages[i];
 		cg2d_set_scale(c2d,1,1);
@@ -97,6 +98,8 @@ void popup_messages_draw( cg2d_t *c2d, int spriteLayer,int fontLayer ){
 		
 		if(p->image!=NULL){
 			cg2d_draw_image_rect(c2d,p->image,p->x+20,p->y+20,50,50);
+		}else{
+			SDL_Log("image null");
 		}
 
 		cg2d_set_layer(c2d,fontLayer);

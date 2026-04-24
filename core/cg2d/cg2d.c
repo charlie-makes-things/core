@@ -180,6 +180,7 @@ typedef struct cg2d_fragment_uniform{
 }cg2d_fragment_uniform;
 
 typedef struct cg2d_image{
+	int index;
 	char name[256];
 	float x,y,w,h;
 	float hx,hy;
@@ -198,6 +199,8 @@ typedef struct cg2d_t{
 	int vpx,vpy,vpw,vph;
 	//window scale - use when setting viewport offsets
 	int winW,winH;
+	int virtW,virtH;
+	float virtMXscale,virtMYscale;
 
 	//origin and handle
 	float hx,hy;
@@ -234,6 +237,7 @@ typedef struct cg2d_t{
 	cg2d_fragment_uniform fragUniform;
 
 	cg2d_image *imageList;
+
 
 	//debug font
 	// texAtlas fontAtlas;
@@ -284,7 +288,7 @@ void cg2d_free(cg2d_t *c2d);
 
 //creates an image for the given texture. the name param here is just in case you need
 //to look it up in the imageList
-cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex);
+cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex,int width,int height);
 
 //create an image from a texAtlas. the name param should match the name in the
 //texAtlas
@@ -666,6 +670,11 @@ void cg2d_init(cg2d_t *c2d,SDL_Window *window,SDL_GPUDevice *device, int scrnW,i
     c2d->winW=scw/sw;
     c2d->winH=sch/sh;
     
+    c2d->virtW=scrnW;
+    c2d->virtH=scrnH;
+
+    c2d->virtMXscale=((float)scrnW)/(float)scrnW;
+    c2d->virtMYscale=((float)scrnH)/(float)scrnH;
 
 	
 	c2d->hx=0.0f;
@@ -818,10 +827,13 @@ cg2d_font *cg2d_get_image_font(cg2d_t *c2d){
 	}
 }
 
+void cg2d_delete_image(cg2d_t *c2d, cg2d_image *img){
+	arrdelswap(c2d->imageList,img->index);
+}
 
 
 //creates an image for the given texture
-cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex){
+cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex,int width,int height){
 
 	if(name==NULL || tex==NULL){
 		SDL_Log("c2d load image - tex or name is null\n");
@@ -832,8 +844,8 @@ cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex){
 	SDL_strlcpy(m2Img.name,name,SDL_strlen(name)+1);
 	m2Img.x=0.0f;
 	m2Img.y=0.0f;
-	m2Img.w=tex->w;
-	m2Img.h=tex->h;		
+	m2Img.w=width;
+	m2Img.h=height;		
 	if(c2d->automidhandle==true){
 		m2Img.hx=m2Img.hy=0.5f;
 	}else{
@@ -853,13 +865,14 @@ cg2d_image *cg2d_create_image(cg2d_t *c2d,char *name,cg_texture *tex){
 	m2Img.ma=c2d->ma;
 
 	
-	
+	m2Img.index=arrlenu(c2d->imageList);
 
 	if(c2d->imageList==NULL){
 		//set an initial capacity
 		arrsetcap(c2d->imageList,100);
 	}
 	arrput(c2d->imageList,m2Img);
+
 
 	return (cg2d_image*)&c2d->imageList[arrlenu(c2d->imageList)-1];
 
@@ -901,7 +914,7 @@ cg2d_image* cg2d_load_atlas_image(cg2d_t *c2d,texAtlas *atlas,char* imgName){
 		m2Img.mg=c2d->mg;	
 		m2Img.mb=c2d->mb;
 		m2Img.ma=c2d->ma;
-		
+		m2Img.index=arrlenu(c2d->imageList);
 	
 	}else{
 		SDL_Log("no match found for %s\n",imgName );
@@ -1167,6 +1180,9 @@ void cg2d_set_viewport(cg2d_t *c2d,int x, int y, int w, int h){
    
     c2d->winW=scw/sw;
     c2d->winH=sch/sh;
+
+
+
 }
 
 //returns scaled coords for use with SDL_SetGPUViewport
@@ -1794,6 +1810,25 @@ void cg2d_clear_layer(cg2d_t *c2d,int layerID){
 	arrsetlen(c2d->buffers[layerID].verts,0);
 }
 
+int cg2d_get_virtual_width(cg2d_t *c2d){
+    return c2d->virtW;
+}
+
+int cg2d_get_virtual_height(cg2d_t *c2d){
+    return c2d->virtH;
+}
+
+void cg2d_set_virtual_resolution(cg2d_t *c2d,int w, int h){
+    c2d->virtW=w;
+    c2d->virtH=h;
+    int vx,vy,vw,vh;
+    cg2d_get_viewport(c2d,&vx,&vy,&vw,&vh);
+    c2d->virtMXscale=((float)w)/WINDOW_WIDTH;
+	c2d->virtMYscale=((float)h)/WINDOW_HEIGHT;
+	c2d->virtMXscale=(float)w/(float)WINDOW_WIDTH;
+    c2d->virtMYscale=(float)h/(float)WINDOW_HEIGHT;
+}
+
 
 
 void cg2d_draw_layer(cg2d_t *c2d,int layerID,SDL_GPUCommandBuffer* cmdBuf, SDL_GPUTexture *renderTarget){
@@ -1846,7 +1881,7 @@ void cg2d_draw_layer(cg2d_t *c2d,int layerID,SDL_GPUCommandBuffer* cmdBuf, SDL_G
         SDL_GPUViewport vp=(SDL_GPUViewport){vx,vy,vw*c2d->winW,vh*c2d->winH,0,1};
         SDL_SetGPUViewport(renderPass,&vp);
         
-        _cg2d_mat4 mat=_cg2d_mat4_CreateOrthographic(vx,vw, vh,vy, 0,-1);
+        _cg2d_mat4 mat=_cg2d_mat4_CreateOrthographic(vx,c2d->virtW*c2d->winW, c2d->virtH*c2d->winH,vy, 0,-1);
         mat=_cg2d_mat4_Multiply(c2d->buffers[bufitr].transform,mat);
 
         cg2d_vertex_uniform uniform={

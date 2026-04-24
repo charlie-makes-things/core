@@ -98,7 +98,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     			 "Particle Fountain Example",
     			 &state->mixer,
     			 "assets/",
-    			 3.0)==SDL_APP_FAILURE)
+    			 3.0,
+    			 false)==SDL_APP_FAILURE)
     {	SDL_Log("failed to init core.\n");return SDL_APP_FAILURE;    }
 
     *appstate = state;

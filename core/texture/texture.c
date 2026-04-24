@@ -6,6 +6,11 @@ typedef struct cg_texture{
 	int w,h;
 }cg_texture;
 
+void cg_destroy_texture(cg_texture *tex,SDL_GPUDevice *dev){
+    SDL_ReleaseGPUTexture(dev,tex->tex);
+    SDL_ReleaseGPUSampler(dev,tex->samp);
+}
+
 
 void cg_texture_gen_2d(cg_texture *tex,int w, int h,SDL_GPUFilter filter,SDL_GPUDevice *device,SDL_Window *window){
 	float wscale=SDL_GetWindowPixelDensity(window);
@@ -33,6 +38,7 @@ void cg_texture_gen_2d(cg_texture *tex,int w, int h,SDL_GPUFilter filter,SDL_GPU
 }
 
 void cg_texture_copy_texture(SDL_GPUCommandBuffer *buf,SDL_Window *win,cg_texture *from, cg_texture *to){
+	float wscale=SDL_GetWindowPixelDensity(win);
 	SDL_GPUCopyPass* copyPass = SDL_BeginGPUCopyPass(buf);
     SDL_CopyGPUTextureToTexture(
         copyPass,
@@ -42,8 +48,8 @@ void cg_texture_copy_texture(SDL_GPUCommandBuffer *buf,SDL_Window *win,cg_textur
         &(SDL_GPUTextureLocation){
             .texture = to->tex
         },
-        WINDOW_WIDTH*(int)SDL_GetWindowPixelDensity(win),
-        WINDOW_HEIGHT*(int)SDL_GetWindowPixelDensity(win),
+        from->w*wscale,
+        from->h*wscale,
         1,
         false
     );

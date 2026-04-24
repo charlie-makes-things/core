@@ -5,6 +5,8 @@ int video_mode_count=0;
 const SDL_DisplayMode *video_largest_window=NULL;
 const SDL_DisplayMode *video_desktop_mode=NULL;
 const SDL_DisplayMode *video_current_mode=NULL;
+float video_display_scale=1.0;
+bool video_fullscreen_is_exclusive=false;
 
 bool video_compare_modes(const SDL_DisplayMode *a,const SDL_DisplayMode *b){
 
@@ -26,19 +28,14 @@ bool video_is_fullscreen(SDL_Window *window){
 	{
 		if (SDL_GetWindowFullscreenMode(window) != NULL)
 		{
-			printf("exclusive fullscreen mode"); 
 			return true;
 		}
 		else
 		{
-			printf("desktop fullscreen mode");
 			return true;
 		}
 	}
-	else
-	{
-		printf("windowed mode");
-	}
+	
 	return false;
 }
 
@@ -110,7 +107,72 @@ SDL_AppResult video_init(){
 		SDL_Log("no match found for largest window, setting to current desktop\n");
 		video_largest_window=video_desktop_mode;
 	}
+	video_mode_count=arrlen(video_mode_list);
 	video_initialised=true;
 	return SDL_APP_CONTINUE;
 
+}
+
+void video_set_windowed(SDL_Window *win){
+    WINDOW_WIDTH=video_largest_window->w;
+    WINDOW_HEIGHT=video_largest_window->h;
+    SDL_SetWindowFullscreen(win,false);                    
+    SDL_SetWindowSize(win,WINDOW_WIDTH,WINDOW_HEIGHT);
+    SDL_SyncWindow(win);
+    int ww=0,wh=0;
+   SDL_GetWindowSize(win, &ww, &wh);
+    
+   SDL_Log("set window to %d x %d with %d x %d\n",ww,wh,WINDOW_WIDTH,WINDOW_HEIGHT);
+}
+
+void video_set_fullscreen_desktop(SDL_Window *win){
+    SDL_SetWindowFullscreenMode(win, NULL);
+    SDL_SetWindowFullscreen(win,true);
+    SDL_SyncWindow(win);
+    int ww=0,wh=0;
+    SDL_GetWindowSize(win, &ww, &wh);    
+    WINDOW_WIDTH=ww;
+    WINDOW_HEIGHT=wh;
+    SDL_Log("set window fullscreen desktop to %d x %d with %d x %d\n",ww,wh,WINDOW_WIDTH,WINDOW_HEIGHT);
+}
+
+void video_set_exclusive_fullscreen(SDL_Window *win,SDL_DisplayMode *d){
+    SDL_SetWindowFullscreenMode(win, d);
+    SDL_SetWindowFullscreen(win, true);
+    SDL_SyncWindow(win);
+    int ww=0,wh=0;
+    SDL_GetWindowSize(win, &ww, &wh);    
+    WINDOW_WIDTH=ww;
+    WINDOW_HEIGHT=wh;
+    SDL_Log("set window fullscreen exclusive to %d x %d with %d x %d\n",ww,wh,WINDOW_WIDTH,WINDOW_HEIGHT);
+
+}
+
+bool video_test_aspect_ratio(float test){
+    float a16x9=16.0f/9.0f;
+    float a16x10=16.0f/10.0f;
+    float a21x9=21.0f/9.0f;
+    float a32x9=32.0f/9.0f;
+
+    if(test==a16x9 ||
+       test==a16x10 ||
+       test==a21x9 ||
+       test==a32x9){
+        return true;
+    }
+    return false;
+
+}
+
+char *video_get_aspect_string(float test){
+    float a16x9=16.0f/9.0f;
+    float a16x10=16.0f/10.0f;
+    float a21x9=21.0f/9.0f;
+    float a32x9=32.0f/9.0f;
+
+    if(test==a16x9) return "16:9";
+    if(test==a16x10) return "16:10";
+    if(test==a21x9) return "21:9";
+    if(test==a32x9) return "32:9";
+    return "na";
 }

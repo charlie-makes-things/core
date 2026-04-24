@@ -107,6 +107,7 @@ typedef enum cg_mouse_button{
 }cg_mouse_button;
 
 typedef struct cg_mouse_data{
+	float scaleX,scaleY;
 	float lastMouseX,lastMouseY;
 	float mouseX,mouseY,mouseRelX,mouseRelY;
 	bool mouseLeft,mouseRight,mouseMiddle;
@@ -161,12 +162,12 @@ static cg2d_image *_input_cancel_image=NULL;
 
 float input_get_mouseX(){
 	
-	return _input_mouse_data.mouseX;
+	return _input_mouse_data.mouseX*_input_mouse_data.scaleX;
 }
 
 float input_get_mouseY(){
 	
-	return _input_mouse_data.mouseY;
+	return _input_mouse_data.mouseY*_input_mouse_data.scaleY;
 }
 
 float input_get_last_mouseX(){
@@ -431,6 +432,8 @@ void cg_controller_set_default_keymap(cg_controller *c){
 
 SDL_AppResult input_init(MIX_Mixer *mixer){
 	
+
+
 	MIX_Audio *connectedAudio=NULL;
     MIX_Audio *disconnectedAudio=NULL;
 
@@ -1163,13 +1166,16 @@ bool cg_controller_get_any_input(cg_controller *c){
 }
 
 
-void input_update(){
+void input_update(cg2d_t *c2d){
 	for(int i=0;i<arrlen(_input_controller_list);i++){
 		cg_controller_update(&_input_controller_list[i]);
 		if(cg_controller_get_any_input(&_input_controller_list[i])==true){
 			_input_activeController=&_input_controller_list[i];
 		}
 	}
+	cg_mouse_data *md=input_get_mouse_data();
+	md->scaleX=c2d->virtMXscale;
+	md->scaleY=c2d->virtMYscale;
 
 }
 
