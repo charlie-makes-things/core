@@ -43,6 +43,12 @@ static texAtlas atlas;
 //the cg2d struct.
 static cg2d_t c2d;
 
+//virtual resolution. this sets an internal dimension for resolution
+//independent drawing i.e your code looks the same regardless of the screen
+//size
+int virtualWidth=1280;
+int virtualHeight=720;
+
 //the blob image we'll use to create the monster
 static cg2d_image *blobImage;
 
@@ -93,13 +99,13 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     //load functions are relative to this.
     if(core_init(&state->Device,
     			 &state->Window, 
-    			 1280, 
-    			 720,
+    			 0, 
+    			 0,
     			 "Blob Monster Example",
     			 &state->mixer,
     			 "assets/",
     			 3.0,
-    			 ,false)==SDL_APP_FAILURE)
+    			 false)==SDL_APP_FAILURE)
     {	SDL_Log("failed to init core.\n");return SDL_APP_FAILURE;    }
 
     *appstate = state;
@@ -118,6 +124,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
  //initialise cg2d
     cg2d_init(&c2d,state->Window,state->Device, WINDOW_WIDTH,WINDOW_HEIGHT);
+    cg2d_set_virtual_resolution(&c2d,virtualWidth,virtualHeight);
  //get the image
     blobImage=cg2d_load_atlas_image(&c2d,&atlas,"blob.png");
  //load the font for popup messages
@@ -164,6 +171,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 //event handling
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
+	app_state *state = (app_state *)appstate;
     //this updates the input handler stuff, controllers, mouse etc.
     int controllerChangeIndex =0;
     input_update_events(event,&controllerChangeIndex,&c2d);
@@ -176,7 +184,20 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     
     } else if (event->type == SDL_EVENT_GAMEPAD_REMOVED) {
                        
-    }
+    }else if ((event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_F11) ||
+              (event->type == SDL_EVENT_KEY_DOWN && (event->key.mod ==SDL_KMOD_LALT && event->key.key==SDLK_RETURN )) ){
+        if(video_is_fullscreen(state->Window)==true){
+            video_set_windowed(state->Window);
+            cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
+            cg2d_set_virtual_resolution(&c2d,virtualWidth, virtualHeight);
+        }else{
+            video_set_fullscreen_desktop(state->Window);
+            cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
+            cg2d_set_virtual_resolution(&c2d,virtualWidth, virtualHeight);
+        }
+        SDL_Log("video mode change: %d x %d - vx %d vy %d\n",WINDOW_WIDTH,WINDOW_HEIGHT,cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
+        
+    } 
      return SDL_APP_CONTINUE;
 }
 
@@ -190,7 +211,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
 
     //update input - call every frame
-    input_update();
+    input_update(&c2d);
 
     //update popup messages - connect/disconnect a controller to spawn one
     //or press space to spawn a test message
@@ -217,8 +238,8 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     //point, so you could make it user controllable by changing these variables
     
     //final position =  radius*sin/cos 					  + origin (the center of the window plus a varying offset)
-    monster.pos[0].x = (15 * cg2d_sin(monster.time * -6)) + ((WINDOW_WIDTH/2 )+((WINDOW_WIDTH/3 )*cg2d_sin(monster.time/1.5f))) ;
-    monster.pos[0].y = (15 * cg2d_cos(monster.time * -6)) + ((WINDOW_HEIGHT/2)+((WINDOW_HEIGHT/3)*cg2d_sin(monster.time*1.3f))) ;
+    monster.pos[0].x = (15 * cg2d_sin(monster.time * -6)) + ((cg2d_get_virtual_width(&c2d)/2 )+((cg2d_get_virtual_width(&c2d)/3 )*cg2d_sin(monster.time/1.5f))) ;
+    monster.pos[0].y = (15 * cg2d_cos(monster.time * -6)) + ((cg2d_get_virtual_height(&c2d)/2)+((cg2d_get_virtual_height(&c2d)/3)*cg2d_sin(monster.time*1.3f))) ;
 						
 
 	//update the tail points so they follow the head at a distance

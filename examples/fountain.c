@@ -43,6 +43,12 @@ static cg2d_image *blobImage;
 //check it out here: https://poppyworks.itch.io/silver
 static cg2d_font *silverFont;
 
+//virtual resolution. this sets an internal dimension for resolution
+//independent drawing i.e your code looks the same regardless of the screen
+//size
+int virtualWidth=1280;
+int virtualHeight=720;
+
 //some layers to render into
 static int sparkLayer;
 static int fontLayer;
@@ -119,6 +125,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
   
  //initialise cg2d
     cg2d_init(&c2d,state->Window,state->Device, WINDOW_WIDTH,WINDOW_HEIGHT);
+    cg2d_set_virtual_resolution(&c2d,virtualWidth,virtualHeight);
  //get the image
     blobImage=cg2d_load_atlas_image(&c2d,&atlas,"blob.png");
  //load the font for popup messages
@@ -145,6 +152,8 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 //event handling
 SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 {
+
+	app_state *state = (app_state *)appstate;
     //this updates the input handler stuff, controllers, mouse etc.
     int controllerChangeIndex =0;
     input_update_events(event,&controllerChangeIndex,&c2d);
@@ -161,6 +170,19 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
     
     } else if (event->type == SDL_EVENT_GAMEPAD_REMOVED) {
                        
+    }else if ((event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_F11) ||
+              (event->type == SDL_EVENT_KEY_DOWN && (event->key.mod ==SDL_KMOD_LALT && event->key.key==SDLK_RETURN )) ){
+        if(video_is_fullscreen(state->Window)==true){
+            video_set_windowed(state->Window);
+            cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
+            cg2d_set_virtual_resolution(&c2d,virtualWidth, virtualHeight);
+        }else{
+            video_set_fullscreen_desktop(state->Window);
+            cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
+            cg2d_set_virtual_resolution(&c2d,virtualWidth, virtualHeight);
+        }
+        SDL_Log("video mode change: %d x %d - vx %d vy %d\n",WINDOW_WIDTH,WINDOW_HEIGHT,cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
+        
     } 
      return SDL_APP_CONTINUE;
 }
@@ -175,7 +197,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
 
     //update input - call every frame
-    input_update();
+    input_update(&c2d);
 
     //update popup messages - connect/disconnect a controller to spawn one
     //or press space to spawn a test message
@@ -225,16 +247,16 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     	//make them bounce and slow if they hit the bottom
     	//border of the screen
-    	if(sparks[i].y>WINDOW_HEIGHT){
-    		sparks[i].y=WINDOW_HEIGHT;
+    	if(sparks[i].y>cg2d_get_virtual_width(&c2d)){
+    		sparks[i].y=cg2d_get_virtual_width(&c2d);
     		sparks[i].vx=-sparks[i].vx*0.1;
     		sparks[i].vy=-sparks[i].vy*0.1;
     	}
 
     	//make them bounce off the left and right edges
-    	if(sparks[i].x<0 || sparks[i].x>WINDOW_WIDTH ){
+    	if(sparks[i].x<0 || sparks[i].x>cg2d_get_virtual_width(&c2d) ){
     		//clamp to the window
-    		clamp(sparks[i].x,0,WINDOW_WIDTH);    		
+    		clamp(sparks[i].x,0,cg2d_get_virtual_width(&c2d));    		
     		//negate the x velocity and dampen
     		sparks[i].vx=-sparks[i].vx*0.75;
     	}
