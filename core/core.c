@@ -48,6 +48,7 @@ const char* BasePath=NULL;
 const char* AssetPath=NULL;
 
 //core stuff in order
+#include "framerate.c"
 #include "video_util.c"
 #include "texture/texture.c"
 #include "filesys/filesys.c"
@@ -70,6 +71,7 @@ SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int hei
     //input adds a mouse and a keyboard controller by default
     if(input_init(*mixer)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     cg_popup_message_init(popupFontScale);
+    init_framerate();
     return SDL_APP_CONTINUE;
 }
 
@@ -202,14 +204,32 @@ SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int
         return SDL_APP_FAILURE;
     }
 
-    if (SDL_WindowSupportsGPUSwapchainComposition(
-            device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR)) {
-        SDL_SetGPUSwapchainParameters(
-            device, window,
-            SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR,
-            SDL_GPU_PRESENTMODE_VSYNC);
+    
+    SDL_GPUPresentMode presentMode = SDL_GPU_PRESENTMODE_VSYNC;
+    if (SDL_WindowSupportsGPUPresentMode(
+        device,
+        window,
+        SDL_GPU_PRESENTMODE_IMMEDIATE
+    )) {
+        SDL_Log("supports immediate mode\n");
+        presentMode = SDL_GPU_PRESENTMODE_IMMEDIATE;
+    }
+    else if (SDL_WindowSupportsGPUPresentMode(
+        device,
+        window,
+        SDL_GPU_PRESENTMODE_MAILBOX
+    )) {
+        SDL_Log("supports mailbox mode\n");
+        presentMode = SDL_GPU_PRESENTMODE_MAILBOX;
     }
 
+    SDL_SetGPUSwapchainParameters(
+        device,
+        window,
+        SDL_WindowSupportsGPUSwapchainComposition(device, window, SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR) ? SDL_GPU_SWAPCHAINCOMPOSITION_SDR_LINEAR:SDL_GPU_SWAPCHAINCOMPOSITION_SDR,
+        presentMode
+    );
+////////////////////////////////
     if(fullScreen==true){
         if(video_fullscreen_is_exclusive==true){
             WINDOW_WIDTH=video_current_mode->w;

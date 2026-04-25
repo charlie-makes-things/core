@@ -1075,6 +1075,10 @@ int cg2d_get_current_layer(cg2d_t *c2d){
 	return -1;
 }
 
+int cg2d_get_layer_vertex_count(cg2d_t *c2d,int layerID){
+	return arrlenu(c2d->buffers[layerID].verts);
+}
+
 void cg2d_set_layer_clear(cg2d_t *c2d,int layerID, bool clear){
 	if(layerID>=0 && layerID<c2d->bufferCount){
 		c2d->buffers[layerID].load_op=(clear==true) ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;

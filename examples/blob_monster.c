@@ -107,8 +107,11 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     			 3.0,
     			 false)==SDL_APP_FAILURE)
     {	SDL_Log("failed to init core.\n");return SDL_APP_FAILURE;    }
-
+	
     *appstate = state;
+
+//set the framerate
+    set_framerate(60);
 
 
 // Create and load the shaders
@@ -425,6 +428,9 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 	}
 	//draw everything
     SDL_SubmitGPUCommandBuffer(cmdBuf);
+
+    //delay if needed
+    framerate_delay();
 
     return SDL_APP_CONTINUE;
 
