@@ -210,7 +210,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     //update popup messages - connect/disconnect a controller to spawn one
     //or press space to spawn a test message
     //call every frame
-    popup_messages_update();
+    popup_messages_update(cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
    
 //////////////////////////////////////////////////
 // add some sparks if the left mouse is being held down

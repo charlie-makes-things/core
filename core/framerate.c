@@ -1,12 +1,12 @@
 
 #define FRAMERATE_DEFAULT 60
 
-Uint32 _framecount;
-float _rateticks;
-Uint64 _baseticks;
-Uint64 _lastticks;
-Uint32 _rate;
-bool _framerate_initialised=false;
+static Uint32 _framecount;
+static float _rateticks;
+static Uint64 _baseticks;
+static Uint64 _lastticks;
+static Uint32 _rate;
+static bool _framerate_initialised=false;
 
 
 void init_framerate(){

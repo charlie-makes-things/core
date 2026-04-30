@@ -48,7 +48,7 @@ void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image 
 	float mw=cg2d_text_width(c2d,message)*p.fontScale;
 	float dw=cg2d_text_width(c2d,data)*p.fontScale;
 
-	p.width=(SDL_max(mw,dw)*1.2)+100;
+	p.width=(SDL_max(mw,dw)*1.2)+50;
 
 	p.x=0;
 	p.y=WINDOW_HEIGHT;
@@ -60,13 +60,13 @@ void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image 
 
 
 
-void popup_messages_update(){
+void popup_messages_update(float virtualW,float virtualH){
 	for(int i=0;i<arrlen(_popup_messages.messages);i++){
 		
-		float ty=WINDOW_HEIGHT-100-((arrlen(_popup_messages.messages)-1-i)*100);
+		float ty=virtualH-100-((arrlen(_popup_messages.messages)-1-i)*100);
 		float tx=0.0;
 		if(_popup_messages.messages[i].life<60){
-			tx=-1280;
+			tx=-virtualW;
 		}
 		_popup_messages.messages[i].x+=(tx-_popup_messages.messages[i].x)*0.1;
 		_popup_messages.messages[i].y+=(ty-_popup_messages.messages[i].y)*0.1;

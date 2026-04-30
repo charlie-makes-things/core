@@ -1,12 +1,12 @@
 
-bool video_initialised=false;
-SDL_DisplayMode **video_mode_list=NULL;
-int video_mode_count=0;
+static bool video_initialised=false;
+static SDL_DisplayMode **video_mode_list=NULL;
+static int video_mode_count=0;
 const SDL_DisplayMode *video_largest_window=NULL;
-const SDL_DisplayMode *video_desktop_mode=NULL;
-const SDL_DisplayMode *video_current_mode=NULL;
-float video_display_scale=1.0;
-bool video_fullscreen_is_exclusive=false;
+static const SDL_DisplayMode *video_desktop_mode=NULL;
+static const SDL_DisplayMode *video_current_mode=NULL;
+static float video_display_scale=1.0;
+static bool video_fullscreen_is_exclusive=false;
 
 bool video_compare_modes(const SDL_DisplayMode *a,const SDL_DisplayMode *b){
 

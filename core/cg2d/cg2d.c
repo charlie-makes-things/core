@@ -1702,6 +1702,7 @@ float cg2d_text_height(cg2d_t *c2d, char *text){
 
 
 
+
 // TTF_STYLE_NORMAL        0x00 /**< No special style */
 // TTF_STYLE_BOLD          0x01 /**< Bold style */
 // TTF_STYLE_ITALIC        0x02 /**< Italic style */
