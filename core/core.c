@@ -39,7 +39,7 @@ SDL_AppResult init_graphics(SDL_GPUDevice **dev,SDL_Window **win, int width, int
 
 //this function wraps the above init function into one call
 SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int height,char *title,MIX_Mixer **mixer,char *assetPath,float popupFontScale,bool fullScreen);
-void core_free(SDL_GPUDevice *dev,SDL_Window *win);
+void core_free(SDL_GPUDevice *dev,SDL_Window *win,MIX_Mixer *mix);
 
 char WINDOW_TITLE[256];  
 int WINDOW_WIDTH =  1280;
@@ -76,7 +76,7 @@ SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int hei
     return SDL_APP_CONTINUE;
 }
 
-void core_free(SDL_GPUDevice *dev,SDL_Window *win){
+void core_free(SDL_GPUDevice *dev,SDL_Window *win,MIX_Mixer *mix){
     input_free();
     popup_messages_free();
     SDL_ReleaseWindowFromGPUDevice(dev, win);
@@ -86,6 +86,9 @@ void core_free(SDL_GPUDevice *dev,SDL_Window *win){
     SDL_DestroyGPUDevice(dev);
     SDL_Log("free ttf\n");
     TTF_Quit();
+    SDL_Log("free mixer\n");
+    MIX_DestroyMixer(mix);
+    MIX_Quit();
     SDL_Log("quit sdl\n");
     SDL_Quit();
 

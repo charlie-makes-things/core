@@ -151,7 +151,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 //free stuff and exit
 void SDL_AppQuit(void *appstate, SDL_AppResult result){
 	app_state *state = (app_state *)appstate;
-    core_free(state->Device,state->Window);    
+    core_free(state->Device,state->Window,state->mixer);    
     SDL_Log("free state\n");
     SDL_free(state);   
 }

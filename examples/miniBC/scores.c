@@ -1,30 +1,15 @@
 
 
-void title_init(){
-	//initialise the blobs in the background
-	for(int i=0;i<BLOB_COUNT;i++){        
-        blob b;
-        //only need to set a few blob values
-        //the rest are set during update.
-        b.spd=SDL_randf();
-        b.deg=SDL_randf()*360;
-        b.r=b.g=b.b=255;
-        float scl=SDL_randf()+0.2;
-        b.sx=b.sy=scl;
-        arrput(blobs,b);
-    }
-    audio_fade_in_and_play(&menuMusic, 1000);
-
-    logoPosX=640;
-    logoPosY=260;
+void scores_init(){
+	
     logoTargetX=640;
-    logoTargetY=260;
-    logoScale=1.0;
-    logoTargetScale=1.0;
+    logoTargetY=100;
+    logoScale=0.5;
+    logoTargetScale=0.5;
 
 }
 
-void title_draw(int ticks){
+void scores_draw(int ticks){
 
 
 	double now = ((double)SDL_GetTicks()) / 4000.0;  /* convert from milliseconds to seconds. */
@@ -68,29 +53,37 @@ void title_draw(int ticks){
 		    	cg2d_set_rotation(&c2d,(i*2)*cg2d_sin((float)ticks*0.4));
 		    	cg2d_set_layer(&c2d,effectsLayer);
 		    }
-                                                                //1-(i*(1/20))
-		     float scl=(logoScale - (i*(logoScale/20)));
+            float scl=(logoScale - (i*(logoScale/20)));
             float rad=logoScale/5;
-            cg2d_set_scale(&c2d,rad*cg2d_sin((float)ticks*0.1)+scl,rad*cg2d_cos((float)ticks*0.1)+scl);
-            cg2d_draw_image(&c2d,logoImage,logoPosX,logoPosY);
+		    cg2d_set_scale(&c2d,rad*cg2d_sin((float)ticks*0.1)+scl,rad*cg2d_cos((float)ticks*0.1)+scl);
+		    cg2d_draw_image(&c2d,logoImage,logoPosX,logoPosY);
 		}
 
-	//draw the by charlie text
-		cg2d_set_layer(&c2d, fontLayer);
-		cg2d_set_scale(&c2d,0.5,0.5);
-		char *creditTxt="Charlie - 2026 with music by John";
-		float woff=cg2d_text_width(&c2d,creditTxt)/4;
-		cg2d_draw_text(&c2d,creditTxt,(cg2d_get_virtual_width(&c2d)/2)-woff,cg2d_get_virtual_height(&c2d)-50);
-   
+	   
    //draw press space or any button to start
         cg2d_set_layer(&c2d, fontLayer);
 		cg2d_set_scale(&c2d,0.5+(0.01*cg2d_cos(ticks*3)),0.5+(0.01*cg2d_cos(ticks*3)));
 		float sx=0,sy=0;
 		cg2d_get_scale(&c2d,&sx,&sy);
-		char *startTxt="Press Space or a Controller Button to Start";
-		woff=(cg2d_text_width(&c2d,startTxt)*sx)/(2);
+		char *startTxt="High Scores";
+		float woff=(cg2d_text_width(&c2d,startTxt)*sx)/(2);
+		cg2d_draw_text(&c2d,startTxt,(cg2d_get_virtual_width(&c2d)/2)-woff,180);
 
-		cg2d_draw_text(&c2d,startTxt,(cg2d_get_virtual_width(&c2d)/2)-woff,cg2d_get_virtual_height(&c2d)/1.45);
+        char *backTxt="Press Space or Button A to go back";
+        woff=(cg2d_text_width(&c2d,backTxt)*sx)/(2);
+        cg2d_draw_text(&c2d,backTxt,(cg2d_get_virtual_width(&c2d)/2)-woff,650);
+
+        for(int i=0;i<10;i++){
+            char posname[36];
+            SDL_snprintf(posname,sizeof(posname),"%d: %s",i+1,highScoreTable[i].name);
+            cg2d_draw_text(&c2d,posname,400,230+i*40);
+
+            char str_score[32];
+            SDL_snprintf(str_score,sizeof(str_score),"%ld",highScoreTable[i].score);
+            woff=cg2d_text_width(&c2d,str_score)*sx;
+            cg2d_draw_text(&c2d,str_score,880-woff,230+i*40);
+        }
+
           
     //draw the copy of the last frame scaled, recoloured and rotated etc. 
         cg2d_mid_handle_image(renderTexImage2);
@@ -114,14 +107,14 @@ void title_draw(int ticks){
 
 }
 
-game_state title_update(cg_controller *active){
+game_state scores_update(cg_controller *active){
 
     logoPosX+=(logoTargetX-logoPosX)*0.1;
     logoPosY+=(logoTargetY-logoPosY)*0.1;
     logoScale+=(logoTargetScale-logoScale)*0.1;
-    
-	//update blobs
-	for(int i=0;i<BLOB_COUNT;i++){
+
+    //update blobs
+    for(int i=0;i<BLOB_COUNT;i++){
         blob *b=&blobs[i];
         
         b->deg+=b->spd*0.5;
@@ -137,7 +130,8 @@ game_state title_update(cg_controller *active){
         
     }
     if(active!=NULL){
-        if(cg_controller_get_button_released(active,SDL_GAMEPAD_BUTTON_SOUTH)==true){
+        if(cg_controller_get_button_released(active,SDL_GAMEPAD_BUTTON_SOUTH)==true ||
+           cg_controller_get_button_released(active,SDL_GAMEPAD_BUTTON_EAST)==true ){
             play_audio(&menuSelect, 1.0,0);
             menu_init();
             return STATE_MENU;
@@ -146,5 +140,5 @@ game_state title_update(cg_controller *active){
 
     }
 
-	return STATE_TITLE;
+    return STATE_SCORE_DISPLAY;
 }

@@ -36,6 +36,10 @@ void cg_popup_message_init(float fontScale){
 	_popup_font_scale=fontScale;
 }
 
+void popup_message_set_font_scale(float scale){
+	_popup_font_scale=scale;
+}
+
 void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image *image,float fontScale){
 
 	cg_popup_message p;
@@ -52,8 +56,7 @@ void popup_messags_add_message(char *message,char *data,cg2d_t *c2d, cg2d_image 
 
 	p.x=0;
 	p.y=WINDOW_HEIGHT;
-	SDL_Log("popup window height is %f\n",p.y);			
-
+	
 	arrpush(_popup_messages.messages,p);
 
 }

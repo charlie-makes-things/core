@@ -26,16 +26,15 @@ bool video_compare_modes(const SDL_DisplayMode *a,const SDL_DisplayMode *b){
 bool video_is_fullscreen(SDL_Window *window){
 	if (SDL_GetWindowFlags(window) & SDL_WINDOW_FULLSCREEN)
 	{
-		if (SDL_GetWindowFullscreenMode(window) != NULL)
-		{
-			return true;
-		}
-		else
-		{
-			return true;
-		}
+		return true;	
+	}	
+	return false;
+}
+
+bool video_is_exclusive_fullscreen(SDL_Window *w){
+	if(SDL_GetWindowFullscreenMode(w)!=NULL){
+		return true;
 	}
-	
 	return false;
 }
 

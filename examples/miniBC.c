@@ -14,8 +14,10 @@ typedef enum game_state{
     STATE_GAME_OVER,
     STATE_SCORE_ENTRY,
     STATE_SCORE_DISPLAY,
-    STATE_CREDITS,
-    STATE_QUIT
+    STATE_ABOUT,
+    STATE_QUIT,
+    STATE_SETTINGS,
+    STATE_GAME_TRANSITION
 }game_state;
 
 //the game state
@@ -34,6 +36,7 @@ static cg2d_font *gameFont;
 cg2d_image *redImage=NULL;//a red blob
 cg2d_image *logoImage=NULL;//the game logo
 cg2d_image *blueflatImage=NULL;//this is the player ship image
+cg2d_image *ringImage=NULL;//a ring image
 
 //cg2d layers to draw to
 static int fontLayer;
@@ -53,8 +56,13 @@ static cg2d_image *renderTexImage2;
 static int renderTargetImageLayer;
 static int renderTargetImageLayer2;
 
-//virtual resolution. this sets an internal dimension for pixel resolution.
-//to your code, the window will always be 1280 x 720 regardless of window size
+//virtual resolution. set these values with cg2d_set_virtual_resolution(x,y);
+//this sets an internal dimension for screen coordinates.
+//this will mean that regardless of the size of your window/fullscreen
+//dimensions, virtualWidth will always be the far left of the window, and virtualHeight
+//will always be the bottom. 
+//this is useful for porting titles with fixed resolutions, such as my own irukandji,
+//which was coded strictly for 800*600 resolution. 
 static int virtualWidth=1280;
 static int virtualHeight=720;
 
@@ -64,10 +72,62 @@ typedef struct app_state{
     MIX_Mixer *mixer;   
 }app_state;
 
-#include "miniBC/types.c"
-#include "miniBC/loadAudio.c"
 
-#include "miniBC/title.c"
+//re-size the render textures if the screensize has changed
+void regen_textures(void *appstate){
+    app_state *state = (app_state *)appstate;
+    cg_destroy_texture(&renderTex,state->Device);
+    cg_destroy_texture(&renderTex2,state->Device);
+    cg_texture_gen_2d(&renderTex,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
+    cg_texture_gen_2d(&renderTex2,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
+    cg2d_delete_image(&c2d,renderTexImage);
+    cg2d_delete_image(&c2d,renderTexImage2);
+    renderTexImage=cg2d_create_image(&c2d,"render target",&renderTex,virtualWidth,virtualHeight);
+    renderTexImage2=cg2d_create_image(&c2d,"render target",&renderTex2,virtualWidth,virtualHeight);
+    cg2d_set_layer_texture(&c2d, renderTargetImageLayer, &renderTex);
+    cg2d_set_layer_texture(&c2d, renderTargetImageLayer2, &renderTex2);
+
+}
+
+//a char to hold the users name if they get a high score.
+char userTypedString[32];
+int userTypedStringLen=0;
+bool textEntryActive=false;
+
+
+#include "miniBC/types.c"//some structs and globals used by the game
+#include "miniBC/audio.c"//functions for audio using sdl_mixer
+
+//some audio tracks 
+cg_audio_track menuMusic;
+cg_audio_track gameMusic;
+cg_audio_track menuClick;
+cg_audio_track menuSelect;
+cg_audio_track menuBack;
+cg_audio_track playerSpawn1;
+cg_audio_track playerSpawn2;
+cg_audio_track playerSpawn3;
+
+//position and scale of the mini bullet candy logo, changed by some of the
+//menu screens
+float logoPosX,logoPosY;
+float logoTargetX,logoTargetY;
+float logoScale, logoTargetScale;
+
+
+#include "miniBC/menu_prototypes.c"
+#include "miniBC/about.c"//about screen functions
+#include "miniBC/settings.c"//settings screen display functions
+#include "miniBC/scoreEntry.c"//score entry screen
+#include "miniBC/transition.c"//screen transition
+#include "miniBC/menu.c"//menu screen functions
+#include "miniBC/title.c"//title screen functions
+#include "miniBC/scores.c"//score display screen function
+#include "miniBC/starfield.c"
+#include "miniBC/particle.c"
+
+#include "miniBC/game.c"//game loop
+
 
 
 int timer=0;
@@ -96,7 +156,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     cg2d_set_virtual_resolution(&c2d,virtualWidth,virtualHeight);
 
     //load texture atlas
-    if(atlas_init(&atlas,"data/bc26Atlas.json","images/",state->Device,ATLAS_FILTER_NEAREST)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
+    if(atlas_init(&atlas,"data/bc26Atlas.json","images/",state->Device,ATLAS_FILTER_LINEAR)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
     //load the font
     gameFont=cg2d_load_image_font(&c2d,"/fonts/roboto/Roboto-Regular.ttf",50,SDL_GPU_FILTER_LINEAR);
 
@@ -104,7 +164,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     redImage=cg2d_load_atlas_image(&c2d,&atlas,"redblob.png");
     logoImage=cg2d_load_atlas_image(&c2d,&atlas,"logo.png");
     blueflatImage=cg2d_load_atlas_image(&c2d,&atlas,"blueflat.png");
-    
+    ringImage=cg2d_load_atlas_image(&c2d,&atlas,"ringbullet.png");
 
     //set some images for controllers connecting and disconnecting. these can
     //also be NULL (which is the default) if you dont care.
@@ -128,7 +188,15 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     
 
     //load audio
-    load_audio(state->mixer);
+
+    load_audio(state->mixer,"audio/Circle.mp3",&menuMusic,AUDIO_TYPE_MUSIC);
+    load_audio(state->mixer,"audio/TowerOfOne.ogg",&gameMusic,AUDIO_TYPE_MUSIC);
+    load_audio(state->mixer,"audio/menuback.ogg",&menuBack,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/menuclick.ogg",&menuClick,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/SineThrow1.wav",&menuSelect,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn1.ogg",&playerSpawn1,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn2.ogg",&playerSpawn2,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn3.ogg",&playerSpawn3,AUDIO_TYPE_SFX);
 
     //init states
     title_init();
@@ -136,7 +204,21 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     //add a popup message to say hi
     popup_messags_add_message("Mini Bullet Candy Example","By Charlie in 2026",&c2d, blueflatImage,0.15);
 
+    //add some scores to the high score table
+    arrpush(highScoreTable,((high_score_entry){"Peas",100000}));
+    arrpush(highScoreTable,((high_score_entry){"Turnips",99999}));
+    arrpush(highScoreTable,((high_score_entry){"Spuds",9999}));
+    arrpush(highScoreTable,((high_score_entry){"Carrots",999}));
+    arrpush(highScoreTable,((high_score_entry){"Broccoli",12345}));
+    arrpush(highScoreTable,((high_score_entry){"Parsnips",54321}));
+    arrpush(highScoreTable,((high_score_entry){"Cauliflower",11223}));
+    arrpush(highScoreTable,((high_score_entry){"Runner Bean",89123}));
+    arrpush(highScoreTable,((high_score_entry){"Sweetcorn",44444}));
+    arrpush(highScoreTable,((high_score_entry){"Swede",80085}));
+    SDL_qsort(highScoreTable, arrlen(highScoreTable), sizeof(high_score_entry), high_score_sort);
 
+    //user typed name
+    SDL_snprintf(userTypedString,sizeof(userTypedString),"\n");
 
     
     //carry on!
@@ -158,54 +240,51 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
-    }else if (event->type == SDL_EVENT_KEY_DOWN && event->key.key==SDLK_SPACE) {
-        //eturn SDL_APP_SUCCESS;
-         popup_messags_add_message("Mini Bullet Candy Example","By Charlie in 2026",&c2d, blueflatImage,0.15);
-
-    }else if (event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_ESCAPE) {
-        return SDL_APP_SUCCESS;
     } else if (event->type == SDL_EVENT_GAMEPAD_ADDED) {
     
     } else if (event->type == SDL_EVENT_GAMEPAD_REMOVED) {
                        
-    //handle switching between fullscreen and windowed modes               
+    //handle switching between fullscreen and windowed modes          
+
     }else if ((event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_F11) ||
               (event->type == SDL_EVENT_KEY_DOWN && (event->key.mod ==SDL_KMOD_LALT && event->key.key==SDLK_RETURN )) ){
         if(video_is_fullscreen(state->Window)==true){
             video_set_windowed(state->Window);
             cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
             cg2d_set_virtual_resolution(&c2d,virtualWidth,virtualHeight);
-            cg_destroy_texture(&renderTex,state->Device);
-            cg_destroy_texture(&renderTex2,state->Device);
-            cg_texture_gen_2d(&renderTex,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
-            cg_texture_gen_2d(&renderTex2,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
-            cg2d_delete_image(&c2d,renderTexImage);
-            cg2d_delete_image(&c2d,renderTexImage2);
-            renderTexImage=cg2d_create_image(&c2d,"render target",&renderTex,virtualWidth,virtualHeight);
-            renderTexImage2=cg2d_create_image(&c2d,"render target",&renderTex2,virtualWidth,virtualHeight);
-            cg2d_set_layer_texture(&c2d, renderTargetImageLayer, &renderTex);
-            cg2d_set_layer_texture(&c2d, renderTargetImageLayer2, &renderTex2);
-
+            //we've resized the screen, so we need to resize the fullscreen texture
+            regen_textures(state);
         }else{
             video_set_fullscreen_desktop(state->Window);
             cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
             cg2d_set_virtual_resolution(&c2d,virtualWidth,virtualHeight);
-            cg_destroy_texture(&renderTex,state->Device);
-            cg_destroy_texture(&renderTex2,state->Device);
-            cg_texture_gen_2d(&renderTex,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
-            cg_texture_gen_2d(&renderTex2,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_NEAREST,state->Device,state->Window);
-            cg2d_delete_image(&c2d,renderTexImage);
-            cg2d_delete_image(&c2d,renderTexImage2);
-            renderTexImage=cg2d_create_image(&c2d,"render target",&renderTex,virtualWidth,virtualHeight);
-            renderTexImage2=cg2d_create_image(&c2d,"render target",&renderTex2,virtualWidth,virtualHeight);
-            cg2d_set_layer_texture(&c2d, renderTargetImageLayer, &renderTex);
-            cg2d_set_layer_texture(&c2d, renderTargetImageLayer2, &renderTex2);
-
+            //we've resized the screen, so we need to resize the fullscreen texture
+            regen_textures(state);
         }
         SDL_Log("video mode change: %d x %d - vx %d vy %d\n",WINDOW_WIDTH,WINDOW_HEIGHT,cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
-        
-    } 
+     
+    }else if(event->type== SDL_EVENT_KEY_DOWN && event->key.key==SDLK_BACKSPACE){
+        if(userTypedStringLen>0){            
+            userTypedStringLen--;
+        }
+    }else if(event->type== SDL_EVENT_KEY_DOWN && event->key.key==SDLK_RETURN){
+        //stop text entry if we hit return
+        if(textEntryActive==true){
+            textEntryActive=false;
+        }
+
+    }else if (event->type==SDL_EVENT_TEXT_INPUT){
+
+        if(userTypedStringLen<32){
+            char firstChar=  event->text.text[0];
+            userTypedString[userTypedStringLen]=firstChar;
+            userTypedStringLen++;
+        }
+
+
+    }
      return SDL_APP_CONTINUE;
+    
 }
 
 
@@ -231,22 +310,28 @@ SDL_AppResult SDL_AppIterate(void *appstate){
             gameState=title_update(input_get_active_controller());
             break;
         case STATE_MENU:
-
+            gameState=menu_update(input_get_active_controller(),timer);
             break;
-        case STATE_CREDITS:
-
+        case STATE_ABOUT:
+            gameState=about_update(input_get_active_controller());
             break;
         case STATE_SCORE_DISPLAY:
-
+            gameState=scores_update(input_get_active_controller());
+            break;
+        case STATE_GAME_TRANSITION:
+            gameState=transition_update(timer,state->Window);
             break;
         case STATE_SCORE_ENTRY:
-
+            gameState=score_entry_update(input_get_active_controller(),state->Window);
             break;
+        case STATE_SETTINGS:
+            gameState=settings_update(input_get_active_controller(),state->Window);
+            break;        
         case STATE_GAME_OVER:
 
             break;
         case STATE_GAME:
-
+            gameState=game_update(input_get_active_controller(),state->Window,timer);
             break;
         case STATE_GAME_PAUSED:
 
@@ -291,22 +376,28 @@ SDL_AppResult SDL_AppIterate(void *appstate){
                 title_draw(timer);
                 break;
             case STATE_MENU:
-
+                menu_draw(timer);
                 break;
-            case STATE_CREDITS:
-
+            case STATE_ABOUT:
+                about_draw(timer);
                 break;
             case STATE_SCORE_DISPLAY:
-
+                scores_draw(timer);
                 break;
             case STATE_SCORE_ENTRY:
-
+                score_entry_draw(timer);
+                break;           
+            case STATE_SETTINGS:
+                settings_draw(timer,state->Window);
                 break;
             case STATE_GAME_OVER:
 
                 break;
+            case STATE_GAME_TRANSITION:
+                transition_draw(timer);
+                break;
             case STATE_GAME:
-
+                game_draw(timer);
                 break;
             case STATE_GAME_PAUSED:
 
@@ -333,28 +424,21 @@ SDL_AppResult SDL_AppIterate(void *appstate){
         //////////////////////////////////////
 
         //render the previous frame with transformations to render texture     
-       // cg2d_set_layer_clear(&c2d,renderTargetImageLayer2,true);       
         cg2d_draw_layer(&c2d,renderTargetImageLayer2,cmdBuf,renderTex.tex);     
            
         //render this frames sprite data to render texture
-       // cg2d_set_layer_clear(&c2d,spriteLayer,false);
         cg2d_draw_layer(&c2d,spriteLayer,cmdBuf,renderTex.tex);
 
         //render this frames sprite data to render texture
-       // cg2d_set_layer_clear(&c2d,effectsLayer,false);
         cg2d_draw_layer(&c2d,effectsLayer,cmdBuf,renderTex.tex);
 
-
         //render the render texture to the swapchain texture
-      //  cg2d_set_layer_clear(&c2d,renderTargetImageLayer,true);       
         cg2d_draw_layer(&c2d,renderTargetImageLayer,cmdBuf,swapchainTexture);     
         
         ///draw the overlay layer to the swapchain texture
-      //  cg2d_set_layer_clear(&c2d,overlayLayer,false);
         cg2d_draw_layer(&c2d,overlayLayer,cmdBuf,swapchainTexture);
 
         ///draw the font layer the swapchain texture
-      //  cg2d_set_layer_clear(&c2d,fontLayer,false);
         cg2d_draw_layer(&c2d,fontLayer,cmdBuf,swapchainTexture);
 
 
@@ -374,12 +458,27 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 void SDL_AppQuit(void *appstate, SDL_AppResult result){
 	app_state *state = (app_state *)appstate;
 
+    //free some global lists
+    starfield_free();
+
+    if(highScoreTable!=NULL){arrfree(highScoreTable);}
+
+    if(blobs!=NULL){arrfree(blobs);}
+
+    if(particles!=NULL){arrfree(particles);};
+
+    //audio free, free any loaded sounds and the list that stores reference to them
+    //strictly speaking this is unneccessary as MIX_Quit() deallocates everyhting it
+    //creates, but it's probably good practice to tidy up.
+    audio_free();
+
+    //free cg2d and the texture atlas
     cg2d_free(&c2d);
     atlas_free(&atlas,state->Device);
 
 
-
-    core_free(state->Device,state->Window);    
+    //finally, free core
+    core_free(state->Device,state->Window,state->mixer);    
     SDL_Log("free state\n");
     SDL_free(state);   
 }

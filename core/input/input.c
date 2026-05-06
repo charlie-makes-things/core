@@ -6,7 +6,8 @@ typedef enum cg_controller_type{
 	CONTROLLER_TYPE_KEYBOARD,
 	CONTROLLER_TYPE_MOUSE,
 	CONTROLLER_TYPE_TOUCH,
-	CONTROLLER_TYPE_GAMEPAD
+	CONTROLLER_TYPE_GAMEPAD,
+	CONTROLLER_TYPE_INVALID
 }cg_controller_type;
 
 typedef struct cg_controller_keyboard_map{
@@ -676,6 +677,13 @@ const char *cg_controller_get_name(cg_controller *c){
 	}
 }
 
+cg_controller_type cg_controller_get_type(cg_controller *c){
+	if(c!=NULL){
+		return c->type;
+	}
+	return CONTROLLER_TYPE_INVALID;
+}
+
 
 void cg_controller_update(cg_controller *c){
 
@@ -1165,6 +1173,24 @@ bool cg_controller_get_any_input(cg_controller *c){
 	return false;
 }
 
+SDL_GamepadButton cg_controller_get_any_button(cg_controller *c){
+
+	for(int i=0;i<16;i++){
+		if(cg_controller_get_button(c,i)==true) return (SDL_GamepadButton)i;
+	}
+
+	return SDL_GAMEPAD_BUTTON_INVALID;
+}
+
+SDL_GamepadAxis cg_controller_get_any_axis(cg_controller *c){
+
+	for(int i=0;i<6;i++){
+		if(SDL_abs( SDL_GetGamepadAxis(c->pad, i))>c->deadzone){
+			return (SDL_GamepadAxis)i;
+		}
+	}
+	return SDL_GAMEPAD_AXIS_INVALID;
+}
 
 void input_update(cg2d_t *c2d){
 	for(int i=0;i<arrlen(_input_controller_list);i++){
