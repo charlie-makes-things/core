@@ -56,11 +56,13 @@ typedef struct player{
     float x,y;
     float xvel,yvel;
     float ang;
+    float colRad;
     bool active;
     Uint64 score;
     int multiplier;
     int nextMultiplier;
     int lives;
+    bool hasLasers;
 }player;
 
 player p1;
@@ -77,7 +79,69 @@ typedef struct particle{
     int life;
     int r,g,b;
     cg2d_image *img;
+    int delay;
 }particle;
 
 particle *particles=NULL;//stretchy buffer - remenber to free!
+
+typedef struct player_bullet{
+    float x,y;
+    float xvel,yvel;
+    float ang;
+    float colRad;
+    int energy;
+}player_bullet;
+
+player_bullet *player_bullets=NULL;
+
+typedef enum enemy_type{
+    ENEMY_GRUNT,
+    ENEMY_TANK,
+    ENEMY_INV,
+    ENEMY_MINI,
+    ENEMY_RING,
+    ENEMY_ORBIT,
+    ENEMY_ELECTRODE,
+    ENEMY_MINE,
+    ENEMY_THREEWAY,
+    ENEMY_FOURWAY,
+    ENEMY_RING3,
+    ENEMY_STRIGHT,
+    ENEMY_GENERATOR,
+    ENEMY_GENERATOR2,
+    ENEMY_SPINNER,
+    ENEMY_CRAWLER,
+    ENEMY_CRAWLER3,
+    ENEMY_BOSS1,
+    ENEMY_BOSS2,
+    ENEMY_HARVESTER,
+    ENEMY_LAUNCHER,
+    ENEMY_SHOT,
+    ENEMY_SHURIKEN,
+    ENEMY_GEN_GRUNT
+}enemy_type;
+
+typedef struct enemy{
+    enemy_type type;
+    float x,y;
+    float x2,y2;
+    float ang;
+    float xvel,yvel;
+    int timer1,timer2;
+    cg2d_image *img;
+    int (* update)(struct enemy*);
+    int (* add_shots)(struct enemy*);
+    int (* die)(struct enemy*);
+    int (* add_effects)(struct enemy*);
+    float colRad;
+    float scale;//for drawing
+    float angOffset;
+    int energy;
+    int score;
+    int shotRate,shotSpeed;
+    float spinSpeed;
+}enemy;
+
+enemy *enemies=NULL;
+    
 

@@ -32,10 +32,15 @@ void game_init(){
     p1.multiplier=1;
     p1.nextMultiplier=100;
     p1.lives=3;
+    p1.colRad=3;
+    p1.hasLasers=false;
 
     waveTicker=0;
+    waveNumber=1;
     doneBang=false;
     doneSpawn=false;
+
+    arrsetcap(enemies,2000);
 
 }
 
@@ -105,12 +110,25 @@ game_state game_update(cg_controller *active,SDL_Window *w,int ticks){
 		waveTicker++;
 
 		//check wave and add eneimes 
-		
-		//update player
+		if(waveTicker % 100 == 0){
+			float x=SDL_rand(1280);
+			float y=SDL_rand(720);
+			float an=SDL_randf()*360;
+			float xv=5*cg2d_sin(an);
+			float yv=5*cg2d_cos(an);
+			enemy_init(ENEMY_GRUNT,x,y,1,0,0,spinnerImage,enemy_seek_player_spinner,enemy_add_shot_fourway_spinner,enemy_explode,enemy_jet_effect,2.0,0,10,1,100,8,5,40);
+		}
 
+		//update player and add shots
+		player_update(active,ticks);
+		//update bullets
+		bullet_update();
 		//update enemies
+		enemy_update();
 
 		//test collisions
+		enemy_self_collision();
+		enemy_shot_collision();
 
 		//check game rules
 
@@ -183,11 +201,16 @@ void game_draw(int ticks){
         if(p1.active==true){
         	//draw player here
         	cg2d_set_layer(&c2d,spriteLayer);
-        	cg2d_set_scale(&c2d,1.0*1.25,1.0*1.25);
+        	cg2d_set_scale(&c2d,1.0*1.5,1.0*1.5);
         	cg2d_set_rotation(&c2d,p1.ang);
         	cg2d_set_colour(&c2d,255,255,255);
-        	cg2d_mid_handle_image(blueflatImage);
+        	cg2d_set_image_handle(blueflatImage,0.5,0.25);
         	cg2d_draw_image(&c2d,blueflatImage,p1.x,p1.y);
         }
+    //draw player bullets
+        bullet_draw();
+
+    //draw enemies
+        enemy_draw();
 
 }

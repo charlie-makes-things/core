@@ -72,6 +72,14 @@ void audio_update_volumes(){
     }
 }
 
+void audio_pan(cg_audio_track *a,float pos){
+    float panpos=(((pos)/cg2d_get_virtual_width(&c2d))*2.0)-1.0;
+    const float right = (panpos +1.0)/2.0;  // move to 0.0f - 1.0f.
+    const MIX_StereoGains gains = { 1.0f - right, right };
+     //stereo panning   
+    MIX_SetTrackStereo(a->track, &gains);
+}
+
 void audio_fade_out_and_stop(cg_audio_track *a, Uint64 millisecs){
    if(_currentMusic!=NULL){
         MIX_StopTrack(a->track,MIX_TrackMSToFrames(a->track, millisecs));    

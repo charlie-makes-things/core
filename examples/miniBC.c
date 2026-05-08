@@ -33,10 +33,25 @@ static texAtlas atlas;
 static cg2d_font *gameFont;
 
 //some global images
+cg2d_image *blobImage=NULL;
 cg2d_image *redImage=NULL;//a red blob
 cg2d_image *logoImage=NULL;//the game logo
 cg2d_image *blueflatImage=NULL;//this is the player ship image
 cg2d_image *ringImage=NULL;//a ring image
+cg2d_image *bulletImage=NULL;//player bullet image
+cg2d_image *grunt1Image=NULL;
+cg2d_image *grunt2Image=NULL;
+cg2d_image *grunt3Image=NULL;
+cg2d_image *grunt4Image=NULL;
+cg2d_image *grunt5Image=NULL;
+cg2d_image *grunt6Image=NULL;
+cg2d_image *grunt7Image=NULL;
+cg2d_image *spikerImage=NULL;
+cg2d_image *shurikenImage=NULL;
+cg2d_image *enemyBulletImage=NULL;
+cg2d_image *rocketImage=NULL;
+cg2d_image *fourwayImage=NULL;
+cg2d_image *spinnerImage=NULL;
 
 //cg2d layers to draw to
 static int fontLayer;
@@ -107,6 +122,8 @@ cg_audio_track menuBack;
 cg_audio_track playerSpawn1;
 cg_audio_track playerSpawn2;
 cg_audio_track playerSpawn3;
+cg_audio_track zap;
+cg_audio_track playerShot;
 
 //position and scale of the mini bullet candy logo, changed by some of the
 //menu screens
@@ -114,6 +131,11 @@ float logoPosX,logoPosY;
 float logoTargetX,logoTargetY;
 float logoScale, logoTargetScale;
 
+#include "miniBC/math.c"
+#include "miniBC/particle.c"
+#include "miniBC/bullet.c"
+#include "miniBC/player.c"
+#include "miniBC/enemy.c"
 
 #include "miniBC/menu_prototypes.c"
 #include "miniBC/about.c"//about screen functions
@@ -124,7 +146,7 @@ float logoScale, logoTargetScale;
 #include "miniBC/title.c"//title screen functions
 #include "miniBC/scores.c"//score display screen function
 #include "miniBC/starfield.c"
-#include "miniBC/particle.c"
+
 
 #include "miniBC/game.c"//game loop
 
@@ -157,14 +179,31 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     //load texture atlas
     if(atlas_init(&atlas,"data/bc26Atlas.json","images/",state->Device,ATLAS_FILTER_LINEAR)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
+    atlas_print_image_names(&atlas);
     //load the font
     gameFont=cg2d_load_image_font(&c2d,"/fonts/roboto/Roboto-Regular.ttf",50,SDL_GPU_FILTER_LINEAR);
 
     //load global images
+    blobImage=cg2d_load_atlas_image(&c2d,&atlas,"blob.png");
     redImage=cg2d_load_atlas_image(&c2d,&atlas,"redblob.png");
     logoImage=cg2d_load_atlas_image(&c2d,&atlas,"logo.png");
     blueflatImage=cg2d_load_atlas_image(&c2d,&atlas,"blueflat.png");
     ringImage=cg2d_load_atlas_image(&c2d,&atlas,"ringbullet.png");
+    bulletImage=cg2d_load_atlas_image(&c2d,&atlas,"bullet.png");
+
+    grunt1Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt1.png");
+    grunt2Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt2.png");
+    grunt3Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt3.png");
+    grunt4Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt4.png");
+    grunt5Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt5.png");
+    grunt6Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt6.png");
+    grunt7Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt7.png");
+    spikerImage=cg2d_load_atlas_image(&c2d,&atlas,"spiker.png");
+    shurikenImage=cg2d_load_atlas_image(&c2d,&atlas,"shuriken.png");
+    enemyBulletImage=cg2d_load_atlas_image(&c2d,&atlas,"enemybullet.png");
+    rocketImage=cg2d_load_atlas_image(&c2d,&atlas,"rocket.png");
+    fourwayImage=cg2d_load_atlas_image(&c2d,&atlas,"fourway.png");
+    spinnerImage=cg2d_load_atlas_image(&c2d,&atlas,"spinner.png");
 
     //set some images for controllers connecting and disconnecting. these can
     //also be NULL (which is the default) if you dont care.
@@ -197,6 +236,9 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     load_audio(state->mixer,"audio/playerspawn1.ogg",&playerSpawn1,AUDIO_TYPE_SFX);
     load_audio(state->mixer,"audio/playerspawn2.ogg",&playerSpawn2,AUDIO_TYPE_SFX);
     load_audio(state->mixer,"audio/playerspawn3.ogg",&playerSpawn3,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/zap2.ogg",&zap,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/bshot.ogg",&playerShot,AUDIO_TYPE_SFX);
+
 
     //init states
     title_init();
@@ -426,11 +468,12 @@ SDL_AppResult SDL_AppIterate(void *appstate){
         //render the previous frame with transformations to render texture     
         cg2d_draw_layer(&c2d,renderTargetImageLayer2,cmdBuf,renderTex.tex);     
            
-        //render this frames sprite data to render texture
-        cg2d_draw_layer(&c2d,spriteLayer,cmdBuf,renderTex.tex);
 
         //render this frames sprite data to render texture
         cg2d_draw_layer(&c2d,effectsLayer,cmdBuf,renderTex.tex);
+
+        //render this frames sprite data to render texture
+        cg2d_draw_layer(&c2d,spriteLayer,cmdBuf,renderTex.tex);
 
         //render the render texture to the swapchain texture
         cg2d_draw_layer(&c2d,renderTargetImageLayer,cmdBuf,swapchainTexture);     

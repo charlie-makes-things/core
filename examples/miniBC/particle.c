@@ -19,6 +19,7 @@ void particle_init(float x, float y,float xvel, float yvel,float ang,float angVe
 	p.g=g;
 	p.b=b;
 	p.alphaVel=p.alpha/p.life;
+	p.delay=0;
 	arrput(particles,p);
 	return;
 }
@@ -27,14 +28,18 @@ void particle_update(){
 
 	for(int i=0;i<arrlen(particles);i++){
 		particle *p=&particles[i];
-		p->x+=p->xvel;
-		p->y+=p->yvel;
-		p->ang+=p->angVel;
-		p->sz+=p->szvel;
-		p->alpha+=(0.0-p->alpha)*p->alphaVel;
-		p->life--;
-		if(p->life<=0 || p->sz<0.0){
-			arrdelswap(particles,i);
+		if(p->delay<=0){
+			p->x+=p->xvel;
+			p->y+=p->yvel;
+			p->ang+=p->angVel;
+			p->sz+=p->szvel;
+			p->alpha+=(0.0-p->alpha)*p->alphaVel;
+			p->life--;
+			if(p->life<=0 || p->sz<0.0){
+				arrdelswap(particles,i);
+			}
+		}else{
+			p->delay--;
 		}
 	}
 

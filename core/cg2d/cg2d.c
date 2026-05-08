@@ -97,7 +97,7 @@ differences:
 */
 
 //defines
-#define CG2D_MAX_VERTICES 10000
+#define CG2D_MAX_VERTICES 20000
 #define CG2D_DEG2RAD 3.14159 / 180.0
 #define CG2D_RAD2DEG 180.0 / 3.14159
 
