@@ -1,3 +1,7 @@
-
+examples/lib/*
+core/include/*
+include/*
+*.exe
+*.dll
 *.out
 .githubpass

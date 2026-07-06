@@ -7,7 +7,7 @@ set defines,globals etc. for core stuff only
 
 //stretchy buffers from https://github.com/nothings/stb/blob/master/stb_ds.h
 #define STB_DS_IMPLEMENTATION
-#include "../include/stb_ds.h"
+#include "include/stb_ds.h"
 
 
 //SDL3 from https://wiki.libsdl.org/SDL3/FrontPage
@@ -25,8 +25,12 @@ set defines,globals etc. for core stuff only
 #include <stdlib.h>
 #include <limits.h>
 
+#ifndef uint
+    typedef unsigned int uint;
+#endif
+
 //json reader - json.h from https://github.com/sheredom/json.h
-#include "../include/json.h"
+#include "include/json.h"
 
 //sdl version printing function
 void print_sdl_versions();

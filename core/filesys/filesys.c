@@ -72,7 +72,7 @@ void *load_file_storage(char *url,size_t *len){
 
     char *fullURL=NULL;
     SDL_asprintf(&fullURL,"%s%s",AssetPath,url);
-    SDL_Log("loading storage file %s\n",fullURL );
+    //SDL_Log("loading storage file %s\n",fullURL );
 
     if (SDL_GetStorageFileSize(title, fullURL, &dstLen) && dstLen > 0) {
        
@@ -118,7 +118,11 @@ bool write_user_file_storage(char* filepath,char* org,char*app,SDL_PropertiesID 
 
     size_t remain= SDL_GetStorageSpaceRemaining(user);
     if(remain<dataLen){
+        #ifdef __WIN32
+        SDL_Log("insufficient storage remaining to save file. size %lld, remain %lld\n",dataLen,remain);
+       #else
         SDL_Log("insufficient storage remaining to save file. size %ld, remain %ld\n",dataLen,remain);
+        #endif
         return false;
     }
 

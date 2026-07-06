@@ -97,7 +97,7 @@ differences:
 */
 
 //defines
-#define CG2D_MAX_VERTICES 20000
+#define CG2D_MAX_VERTICES 200000
 #define CG2D_DEG2RAD 3.14159 / 180.0
 #define CG2D_RAD2DEG 180.0 / 3.14159
 
@@ -884,7 +884,7 @@ cg2d_image* cg2d_load_atlas_image(cg2d_t *c2d,texAtlas *atlas,char* imgName){
 	texAtlasImage *atImg=NULL;
 	cg2d_image m2Img;
 
-	for(int i=0;i<atlas->count;i++){
+	for(size_t i=0;i<atlas->count;i++){
 		if(SDL_strcmp(imgName,atlas->images[i].name)==0){
 			atImg=&atlas->images[i];
 			break;
@@ -963,6 +963,7 @@ int cg2d_add_layer(cg2d_t *c2d, cg2d_blend blend,cg_texture *tex,SDL_GPUShader* 
 			enableBlend=true;//disbles fragments with alpha <0.5; done in shader
 			src=SDL_GPU_BLENDFACTOR_SRC_ALPHA;
 			dst=SDL_GPU_BLENDFACTOR_ONE_MINUS_SRC_ALPHA;
+			break;
 		case CG2D_SOLIDBLEND:
 			enableBlend=false;
 			src=SDL_GPU_BLENDFACTOR_SRC_ALPHA;
@@ -1044,7 +1045,7 @@ int cg2d_add_layer(cg2d_t *c2d, cg2d_blend blend,cg_texture *tex,SDL_GPUShader* 
 }
 
 void cg2d_set_layer_texture(cg2d_t *c2d, int layerID, cg_texture *tex){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		c2d->buffers[layerID].tex=tex->tex;
 		c2d->buffers[layerID].samp=tex->samp;
 		
@@ -1057,7 +1058,7 @@ void cg2d_set_layer_texture(cg2d_t *c2d, int layerID, cg_texture *tex){
 }
 
 void cg2d_set_layer(cg2d_t *c2d, int layerID){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		c2d->currentBuffer=layerID;
 	}else{
 		//defualt to layer 0
@@ -1080,7 +1081,7 @@ int cg2d_get_layer_vertex_count(cg2d_t *c2d,int layerID){
 }
 
 void cg2d_set_layer_clear(cg2d_t *c2d,int layerID, bool clear){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		c2d->buffers[layerID].load_op=(clear==true) ? SDL_GPU_LOADOP_CLEAR : SDL_GPU_LOADOP_LOAD;
 	}else{
 		//defualt  to layer 0
@@ -1091,27 +1092,40 @@ void cg2d_set_layer_clear(cg2d_t *c2d,int layerID, bool clear){
 }
 
 void cg2d_layer_reset_transform(cg2d_t *c2d,int layerID){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		c2d->buffers[layerID].transform=_cg2d_mat4_CreateIdentity();
 	}
 }
 
 void cg2d_layer_translate(cg2d_t *c2d, int layerID, float x, float y){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		_cg2d_mat4 trans=_cg2d_mat4_CreateTranslation(x,y,0);
 		c2d->buffers[layerID].transform=_cg2d_mat4_Multiply(c2d->buffers[layerID].transform,trans);
 	}
 }
 
+void cg2d_layer_get_translation(cg2d_t *c2d, int layerID,float *x, float *y,float *z){
+	if((uint)layerID<c2d->bufferCount){
+		*x=c2d->buffers[layerID].transform.m41;
+		*y=c2d->buffers[layerID].transform.m42;
+		*z=c2d->buffers[layerID].transform.m43;		
+	}else{
+		*x=0;
+		*y=0;
+		*z=0;
+	}
+	return;
+}
+
 void cg2d_layer_scale(cg2d_t *c2d, int layerID, float x, float y){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		_cg2d_mat4 trans=_cg2d_mat4_CreateScaling(x,y,0);
 		c2d->buffers[layerID].transform=_cg2d_mat4_Multiply(c2d->buffers[layerID].transform,trans);
 	}
 }
 
 void cg2d_layer_rotate(cg2d_t *c2d, int layerID, float degrees){
-	if(layerID>=0 && layerID<c2d->bufferCount){
+	if((uint)layerID<c2d->bufferCount){
 		_cg2d_mat4 trans=_cg2d_mat4_CreateRotationZ(degrees*CG2D_DEG2RAD);
 		c2d->buffers[layerID].transform=_cg2d_mat4_Multiply(c2d->buffers[layerID].transform,trans);
 	}
@@ -1537,8 +1551,8 @@ void cg2d_draw_oval(cg2d_t *c2d, float x, float y, float w, float h,bool outline
 	cg2d_image rect;
 	rect.x=0.f;
 	rect.y=0.f;
-	rect.w=w;
-	rect.h=h;
+	rect.w=w*2;
+	rect.h=h*2;
 
 	rect.hx=c2d->hx;
 	rect.hy=c2d->hy;
@@ -1748,7 +1762,7 @@ void cg2d_draw_text(cg2d_t *c2d,char *text,float x, float y){
 	    _cg2d_mat4 trans=_cg2d_mat4_Multiply(rot,scl);
 	    trans=_cg2d_mat4_Multiply(trans,mat);
 	    
-	      
+	    
 	    
 		TTF_SetTextString(c2d->fonts[c2d->currentFont].text, text, 0);
 		TTF_GPUAtlasDrawSequence *sequence =TTF_GetGPUTextDrawData(c2d->fonts[c2d->currentFont].text);

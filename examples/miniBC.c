@@ -1,9 +1,36 @@
+//Mini Bullet Candy, by charlie 2011 - 2026
+
+//an updated port of the original Mini Bullet Candy web game from
+//2011 to demonstrate the core framework.
+
+//use the build examples script to compile.
+
+//this is intended to serve as an example of how to use the core framework
+//functions, not as an example of how to structure your game code. Probably
+//don't do it like this ;P
+
+//while the images and sound effects used are public domain, and yours to do as you
+//please with, the music is not so pleasse don't release anything publicly using
+//the music files. If you'd like to use them in your release, please contact John
+//and ask for permission. His website is here https://ellisvlad.co.nr/
+
+
+
 
 #include "../core/core.c"
 
 char *app_name="Mini Bullet Candy";
-char *version_no="1.0";
+char *version_no="2.0";
 char *your_name="com.charlie.core";
+
+//set to true to display collision circles
+bool d_showCollisionCircles=false;
+//set to true to allow player to die in game.
+bool d_playerCollisions=true;
+//set to true to trigger pause mode
+bool g_pressed_pause=false;
+//make sure we don't immediately unpause
+// int g_pause_ticks=0;
 
 //game states
 typedef enum game_state{
@@ -11,7 +38,6 @@ typedef enum game_state{
     STATE_MENU,
     STATE_GAME,
     STATE_GAME_PAUSED,
-    STATE_GAME_OVER,
     STATE_SCORE_ENTRY,
     STATE_SCORE_DISPLAY,
     STATE_ABOUT,
@@ -35,10 +61,20 @@ static cg2d_font *gameFont;
 //some global images
 cg2d_image *blobImage=NULL;
 cg2d_image *redImage=NULL;//a red blob
+cg2d_image *greenImage=NULL;
 cg2d_image *logoImage=NULL;//the game logo
 cg2d_image *blueflatImage=NULL;//this is the player ship image
 cg2d_image *ringImage=NULL;//a ring image
 cg2d_image *bulletImage=NULL;//player bullet image
+cg2d_image *starImage=NULL;
+cg2d_image *zapImage=NULL;
+cg2d_image *enemyBulletGreenImage=NULL;
+cg2d_image *rescuableImage=NULL;
+cg2d_image *rescuableBlueImage=NULL;
+cg2d_image *rescuableRedImage=NULL;
+cg2d_image *horseImage=NULL;
+cg2d_image *sparkStarImage=NULL;
+
 cg2d_image *grunt1Image=NULL;
 cg2d_image *grunt2Image=NULL;
 cg2d_image *grunt3Image=NULL;
@@ -46,18 +82,38 @@ cg2d_image *grunt4Image=NULL;
 cg2d_image *grunt5Image=NULL;
 cg2d_image *grunt6Image=NULL;
 cg2d_image *grunt7Image=NULL;
+cg2d_image *grunt8Image=NULL;
 cg2d_image *spikerImage=NULL;
 cg2d_image *shurikenImage=NULL;
 cg2d_image *enemyBulletImage=NULL;
 cg2d_image *rocketImage=NULL;
 cg2d_image *fourwayImage=NULL;
 cg2d_image *spinnerImage=NULL;
+cg2d_image *crawlerImage1=NULL;
+cg2d_image *crawlerImage2=NULL;
+cg2d_image *tripleCrawlerImage1=NULL;
+cg2d_image *tripleCrawlerImage2=NULL;
+cg2d_image *mineImage=NULL;
+cg2d_image *orbiterImage=NULL;
+cg2d_image *generatorImage=NULL;
+cg2d_image *electrodeImage1=NULL;
+cg2d_image *electrodeImage2=NULL;
+cg2d_image *evilLauncherImage=NULL;
+cg2d_image *harvesterImage=NULL;
+cg2d_image *tankImage=NULL;
+cg2d_image *spreaderImage=NULL;
+cg2d_image *threewayImage=NULL;
+cg2d_image *ringshotImage=NULL;
+cg2d_image *tripleRingImage=NULL;
+cg2d_image *boss1Image=NULL;
+cg2d_image *boss2Image=NULL;
 
 //cg2d layers to draw to
 static int fontLayer;
 static int spriteLayer;
 static int effectsLayer;
 static int overlayLayer;
+static int hudLayer;
 
 //textures to render to. one texture holds what is being rendered
 //this frame, and the other holds a copy of the previous frame's
@@ -116,14 +172,25 @@ bool textEntryActive=false;
 //some audio tracks 
 cg_audio_track menuMusic;
 cg_audio_track gameMusic;
-cg_audio_track menuClick;
-cg_audio_track menuSelect;
-cg_audio_track menuBack;
-cg_audio_track playerSpawn1;
-cg_audio_track playerSpawn2;
-cg_audio_track playerSpawn3;
-cg_audio_track zap;
-cg_audio_track playerShot;
+cg_audio_track menuClickSFX;
+cg_audio_track menuSelectSFX;
+cg_audio_track menuBackSFX;
+cg_audio_track playerSpawn1SFX;
+cg_audio_track playerSpawn2SFX;
+cg_audio_track playerSpawn3SFX;
+cg_audio_track zapSFX;
+cg_audio_track playerShotSFX;
+
+cg_audio_track hitSFX;
+cg_audio_track deathSFX;
+cg_audio_track electricSFX;
+cg_audio_track completeSFX;
+cg_audio_track enemyShotSFX;
+cg_audio_track gameOverSFX;
+cg_audio_track oneUpSFX;
+cg_audio_track perfectSFX;
+cg_audio_track scoreUpSFX;
+cg_audio_track threewaySFX;
 
 //position and scale of the mini bullet candy logo, changed by some of the
 //menu screens
@@ -131,15 +198,19 @@ float logoPosX,logoPosY;
 float logoTargetX,logoTargetY;
 float logoScale, logoTargetScale;
 
-#include "miniBC/math.c"
+#include "miniBC/math.c"//some math functions
+#include "miniBC/functions.c"
 #include "miniBC/particle.c"
+#include "miniBC/message.c"
+#include "miniBC/bonus.c"
 #include "miniBC/bullet.c"
 #include "miniBC/player.c"
 #include "miniBC/enemy.c"
 
 #include "miniBC/menu_prototypes.c"
 #include "miniBC/about.c"//about screen functions
-#include "miniBC/settings.c"//settings screen display functions
+#include "miniBC/settings.c"//settings2 screen display functions
+#include "miniBC/pause.c"//pause menu2
 #include "miniBC/scoreEntry.c"//score entry screen
 #include "miniBC/transition.c"//screen transition
 #include "miniBC/menu.c"//menu screen functions
@@ -147,7 +218,8 @@ float logoScale, logoTargetScale;
 #include "miniBC/scores.c"//score display screen function
 #include "miniBC/starfield.c"
 
-
+#include "miniBC/enemyFunc.c"//functions to spawn enemies
+#include "miniBC/level.c"//data for the game levels
 #include "miniBC/game.c"//game loop
 
 
@@ -179,17 +251,26 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
 
     //load texture atlas
     if(atlas_init(&atlas,"data/bc26Atlas.json","images/",state->Device,ATLAS_FILTER_LINEAR)==1){SDL_Log("failed to load altas\n"); return SDL_APP_FAILURE; }   
-    atlas_print_image_names(&atlas);
+   
     //load the font
     gameFont=cg2d_load_image_font(&c2d,"/fonts/roboto/Roboto-Regular.ttf",50,SDL_GPU_FILTER_LINEAR);
 
     //load global images
     blobImage=cg2d_load_atlas_image(&c2d,&atlas,"blob.png");
     redImage=cg2d_load_atlas_image(&c2d,&atlas,"redblob.png");
+    greenImage=cg2d_load_atlas_image(&c2d,&atlas,"blobgreen.png");
     logoImage=cg2d_load_atlas_image(&c2d,&atlas,"logo.png");
     blueflatImage=cg2d_load_atlas_image(&c2d,&atlas,"blueflat.png");
     ringImage=cg2d_load_atlas_image(&c2d,&atlas,"ringbullet.png");
     bulletImage=cg2d_load_atlas_image(&c2d,&atlas,"bullet.png");
+    starImage=cg2d_load_atlas_image(&c2d,&atlas,"star.png");
+    zapImage=cg2d_load_atlas_image(&c2d,&atlas,"zap.png");
+    enemyBulletGreenImage=cg2d_load_atlas_image(&c2d,&atlas,"enemybulletgreen.png");
+    rescuableImage=cg2d_load_atlas_image(&c2d,&atlas,"rescuable.png");
+    rescuableBlueImage=cg2d_load_atlas_image(&c2d,&atlas,"rescuableblue.png");
+    rescuableRedImage=cg2d_load_atlas_image(&c2d,&atlas,"rescuablered.png");
+    horseImage=cg2d_load_atlas_image(&c2d,&atlas,"horse.png");
+    sparkStarImage=cg2d_load_atlas_image(&c2d,&atlas,"sparkstar.png");
 
     grunt1Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt1.png");
     grunt2Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt2.png");
@@ -198,13 +279,32 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     grunt5Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt5.png");
     grunt6Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt6.png");
     grunt7Image=cg2d_load_atlas_image(&c2d,&atlas,"grunt7.png");
+    grunt8Image=cg2d_load_atlas_image(&c2d,&atlas,"launcher.png");
     spikerImage=cg2d_load_atlas_image(&c2d,&atlas,"spiker.png");
     shurikenImage=cg2d_load_atlas_image(&c2d,&atlas,"shuriken.png");
     enemyBulletImage=cg2d_load_atlas_image(&c2d,&atlas,"enemybullet.png");
     rocketImage=cg2d_load_atlas_image(&c2d,&atlas,"rocket.png");
     fourwayImage=cg2d_load_atlas_image(&c2d,&atlas,"fourway.png");
     spinnerImage=cg2d_load_atlas_image(&c2d,&atlas,"spinner.png");
-
+    crawlerImage1=cg2d_load_atlas_image(&c2d,&atlas,"crawler1.png");
+    crawlerImage2=cg2d_load_atlas_image(&c2d,&atlas,"crawler2.png");
+    tripleCrawlerImage1=cg2d_load_atlas_image(&c2d,&atlas,"triplecrawler1.png");
+    tripleCrawlerImage2=cg2d_load_atlas_image(&c2d,&atlas,"triplecrawler2.png");
+    mineImage=cg2d_load_atlas_image(&c2d,&atlas,"spikyBall.png");
+    orbiterImage=cg2d_load_atlas_image(&c2d,&atlas,"orbiter.png");
+    generatorImage=cg2d_load_atlas_image(&c2d,&atlas,"generator.png");
+    electrodeImage1=cg2d_load_atlas_image(&c2d,&atlas,"electrode1.png");
+    electrodeImage2=cg2d_load_atlas_image(&c2d,&atlas,"electrode2.png");
+    evilLauncherImage=cg2d_load_atlas_image(&c2d,&atlas,"invlauncher.png");
+    harvesterImage=cg2d_load_atlas_image(&c2d,&atlas,"grunt5.png");
+    tankImage=cg2d_load_atlas_image(&c2d,&atlas,"tank.png");
+    spreaderImage=cg2d_load_atlas_image(&c2d,&atlas,"spreader.png");
+    threewayImage=cg2d_load_atlas_image(&c2d,&atlas,"threeway.png");
+    ringshotImage=cg2d_load_atlas_image(&c2d,&atlas,"ringshot.png");
+    tripleRingImage=cg2d_load_atlas_image(&c2d,&atlas,"triplering.png");
+    boss1Image=cg2d_load_atlas_image(&c2d,&atlas,"49boss.png");
+    boss2Image=cg2d_load_atlas_image(&c2d,&atlas,"bigboss.png");
+    
     //set some images for controllers connecting and disconnecting. these can
     //also be NULL (which is the default) if you dont care.
     input_set_images(cg2d_load_atlas_image(&c2d,&atlas,"tick.png"),cg2d_load_atlas_image(&c2d,&atlas,"cross.png"));
@@ -214,6 +314,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     overlayLayer=cg2d_add_layer(&c2d,CG2D_ALPHABLEND,&atlas.tex,vertexShader,fragmentShader,SDL_GPU_LOADOP_LOAD);
     fontLayer=cg2d_add_layer(&c2d,CG2D_ALPHABLEND,&gameFont->tex,vertexShader,fragmentShader,SDL_GPU_LOADOP_LOAD);
     effectsLayer=cg2d_add_layer(&c2d,CG2D_LIGHTBLEND,&atlas.tex,vertexShader,fragmentShader,SDL_GPU_LOADOP_LOAD);
+    hudLayer=cg2d_add_layer(&c2d,CG2D_ALPHABLEND,&atlas.tex,vertexShader,fragmentShader,SDL_GPU_LOADOP_LOAD);
     
     //generate the render textures
     cg_texture_gen_2d(&renderTex,WINDOW_WIDTH,WINDOW_HEIGHT,SDL_GPU_FILTER_LINEAR,state->Device,state->Window);
@@ -227,21 +328,29 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     
 
     //load audio
-
     load_audio(state->mixer,"audio/Circle.mp3",&menuMusic,AUDIO_TYPE_MUSIC);
     load_audio(state->mixer,"audio/TowerOfOne.ogg",&gameMusic,AUDIO_TYPE_MUSIC);
-    load_audio(state->mixer,"audio/menuback.ogg",&menuBack,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/menuclick.ogg",&menuClick,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/SineThrow1.wav",&menuSelect,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/playerspawn1.ogg",&playerSpawn1,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/playerspawn2.ogg",&playerSpawn2,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/playerspawn3.ogg",&playerSpawn3,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/zap2.ogg",&zap,AUDIO_TYPE_SFX);
-    load_audio(state->mixer,"audio/bshot.ogg",&playerShot,AUDIO_TYPE_SFX);
-
+    load_audio(state->mixer,"audio/menuback.ogg",&menuBackSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/menuclick.ogg",&menuClickSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/SineThrow1.wav",&menuSelectSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn1.ogg",&playerSpawn1SFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn2.ogg",&playerSpawn2SFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/playerspawn3.ogg",&playerSpawn3SFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/zap2.ogg",&zapSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/bshot.ogg",&playerShotSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/hit.ogg",&hitSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/destroy11.ogg",&deathSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/electric.ogg",&electricSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/gamecomplete.ogg",&completeSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/gover.ogg",&gameOverSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/oneup.ogg",&oneUpSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/perfect.ogg",&perfectSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/scoreup.ogg",&scoreUpSFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/threeway.ogg",&threewaySFX,AUDIO_TYPE_SFX);
+    load_audio(state->mixer,"audio/eshot.ogg",&enemyShotSFX,AUDIO_TYPE_SFX);
 
     //init states
-    title_init();
+    title_init(true);
 
     //add a popup message to say hi
     popup_messags_add_message("Mini Bullet Candy Example","By Charlie in 2026",&c2d, blueflatImage,0.15);
@@ -262,7 +371,26 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     //user typed name
     SDL_snprintf(userTypedString,sizeof(userTypedString),"\n");
 
-    
+    //touch devices
+    int touchCnt=0;
+    SDL_TouchID *touch = SDL_GetTouchDevices(&touchCnt);
+    SDL_Log("found %d touch devices\n",touchCnt);
+    if(touchCnt>0){
+        for(int i=0;i<touchCnt;i++){
+            SDL_Log("touch device %d name %s\n",touchCnt,SDL_GetTouchDeviceName(*touch));
+            SDL_TouchDeviceType ttype=SDL_GetTouchDeviceType(*touch);
+            if(ttype==SDL_TOUCH_DEVICE_DIRECT){
+                SDL_Log("touch screen with window-relative coordinates\n");
+            }else if(ttype==SDL_TOUCH_DEVICE_INDIRECT_ABSOLUTE){
+                SDL_Log("trackpad with absolute device coordinates\n");
+            }else if(ttype==SDL_TOUCH_DEVICE_INDIRECT_RELATIVE){
+                SDL_Log("trackpad with screen cursor-relative coordinates\n");
+            }else{
+                SDL_Log("touch type invalid\n");
+            }
+        }
+    }
+
     //carry on!
 	return SDL_APP_CONTINUE;
 }
@@ -280,16 +408,19 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
     int controllerChangeIndex =0;
     input_update_events(event,&controllerChangeIndex,&c2d);
 
+    //handle quitting
     if (event->type == SDL_EVENT_QUIT) {
         return SDL_APP_SUCCESS;
+    //gamepad ading and removing is handled in input.c, but you can add
+    //your own extra stuff below.
     } else if (event->type == SDL_EVENT_GAMEPAD_ADDED) {
     
     } else if (event->type == SDL_EVENT_GAMEPAD_REMOVED) {
                        
-    //handle switching between fullscreen and windowed modes          
-
-    }else if ((event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_F11) ||
-              (event->type == SDL_EVENT_KEY_DOWN && (event->key.mod ==SDL_KMOD_LALT && event->key.key==SDLK_RETURN )) ){
+    //handle switching between fullscreen and windowed modes, use F11, alt-enter or cmd-ctrl-f
+    }else if ((event->type == SDL_EVENT_KEY_DOWN && event->key.key == SDLK_F11) 
+              ||(event->type == SDL_EVENT_KEY_DOWN && (event->key.mod ==SDL_KMOD_LALT && event->key.key==SDLK_RETURN )) 
+              ||(event->type == SDL_EVENT_KEY_DOWN && (event->key.mod & (SDL_KMOD_LGUI | SDL_KMOD_LCTRL) && event->key.key==SDLK_F))){
         if(video_is_fullscreen(state->Window)==true){
             video_set_windowed(state->Window);
             cg2d_set_viewport(&c2d,0,0,WINDOW_WIDTH,WINDOW_HEIGHT);
@@ -304,17 +435,21 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
             regen_textures(state);
         }
         SDL_Log("video mode change: %d x %d - vx %d vy %d\n",WINDOW_WIDTH,WINDOW_HEIGHT,cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
-     
+    
+    //delete the last typed character if text entry is active.
     }else if(event->type== SDL_EVENT_KEY_DOWN && event->key.key==SDLK_BACKSPACE){
-        if(userTypedStringLen>0){            
-            userTypedStringLen--;
+        if(textEntryActive==true){
+            if(userTypedStringLen>0){            
+                userTypedStringLen--;
+            }
         }
+    //cancel text entry
     }else if(event->type== SDL_EVENT_KEY_DOWN && event->key.key==SDLK_RETURN){
         //stop text entry if we hit return
         if(textEntryActive==true){
             textEntryActive=false;
         }
-
+    //if text entry is active, add the last type char to the entry string.
     }else if (event->type==SDL_EVENT_TEXT_INPUT){
 
         if(userTypedStringLen<32){
@@ -322,11 +457,13 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
             userTypedString[userTypedStringLen]=firstChar;
             userTypedStringLen++;
         }
-
-
+    }else if(event->type==SDL_EVENT_KEY_UP && event->key.key==SDLK_ESCAPE){
+        if(gameState!=STATE_GAME_PAUSED){
+            g_pressed_pause=!g_pressed_pause; 
+        }      
     }
-     return SDL_APP_CONTINUE;
     
+     return SDL_APP_CONTINUE;
 }
 
 
@@ -335,15 +472,21 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event){
 SDL_AppResult SDL_AppIterate(void *appstate){
     
     app_state *state = (app_state *)appstate;
+    
     //update input - call every frame
     input_update(&c2d);
     //update popup messages
     popup_messages_update(cg2d_get_virtual_width(&c2d),cg2d_get_virtual_height(&c2d));
 
+    //update cued audio
+    update_cued_audio();
+
     ////////////////////////////////////////
     //here is a good place to update things
     ////////////////////////////////////////
    
+   
+
     timer++;
     switch(gameState){
 
@@ -367,16 +510,20 @@ SDL_AppResult SDL_AppIterate(void *appstate){
             gameState=score_entry_update(input_get_active_controller(),state->Window);
             break;
         case STATE_SETTINGS:
-            gameState=settings_update(input_get_active_controller(),state->Window);
+            gameState=settings_update(input_get_active_controller());
             break;        
-        case STATE_GAME_OVER:
-
-            break;
         case STATE_GAME:
             gameState=game_update(input_get_active_controller(),state->Window,timer);
+            //handle pause mode
+            if(g_pressed_pause==true && gameState==STATE_GAME){
+                gameState=STATE_GAME_PAUSED;
+                pause_init();
+                g_pressed_pause=false;
+                SDL_SetWindowRelativeMouseMode(state->Window, false);
+            }
             break;
         case STATE_GAME_PAUSED:
-
+            gameState=pause_update(input_get_active_controller(),timer,state->Window);
             break;
         case STATE_QUIT:
             return SDL_APP_SUCCESS;
@@ -402,6 +549,7 @@ SDL_AppResult SDL_AppIterate(void *appstate){
         cg2d_clear_layer(&c2d,overlayLayer);
         cg2d_clear_layer(&c2d,effectsLayer);
         cg2d_clear_layer(&c2d,fontLayer);
+        cg2d_clear_layer(&c2d,hudLayer);
         cg2d_clear_layer(&c2d,renderTargetImageLayer);
         cg2d_clear_layer(&c2d,renderTargetImageLayer2);
         //copy the some of the last rendered fame to another so it can be used to make
@@ -432,17 +580,17 @@ SDL_AppResult SDL_AppIterate(void *appstate){
             case STATE_SETTINGS:
                 settings_draw(timer,state->Window);
                 break;
-            case STATE_GAME_OVER:
-
-                break;
             case STATE_GAME_TRANSITION:
                 transition_draw(timer);
                 break;
             case STATE_GAME:
-                game_draw(timer);
+                game_draw(timer,gameState);
                 break;
             case STATE_GAME_PAUSED:
-
+                //draw game screen
+                    game_draw(timer,gameState);
+                //draw pause menu
+                    pause_draw(timer,state->Window);
                 break;
             case STATE_QUIT:
                 return SDL_APP_SUCCESS;
@@ -477,12 +625,15 @@ SDL_AppResult SDL_AppIterate(void *appstate){
 
         //render the render texture to the swapchain texture
         cg2d_draw_layer(&c2d,renderTargetImageLayer,cmdBuf,swapchainTexture);     
-        
-        ///draw the overlay layer to the swapchain texture
-        cg2d_draw_layer(&c2d,overlayLayer,cmdBuf,swapchainTexture);
+                
+        //draw the hud layer
+        cg2d_draw_layer(&c2d,hudLayer,cmdBuf,swapchainTexture);
 
         ///draw the font layer the swapchain texture
         cg2d_draw_layer(&c2d,fontLayer,cmdBuf,swapchainTexture);
+
+        ///draw the overlay layer to the swapchain texture
+        cg2d_draw_layer(&c2d,overlayLayer,cmdBuf,swapchainTexture);
 
 
 
@@ -505,10 +656,14 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result){
     starfield_free();
 
     if(highScoreTable!=NULL){arrfree(highScoreTable);}
-
     if(blobs!=NULL){arrfree(blobs);}
-
     if(particles!=NULL){arrfree(particles);};
+    if(player_bullets!=NULL){arrfree(player_bullets);}
+    if(enemies!=NULL){arrfree(enemies);}
+    if(bonuses!=NULL){arrfree(bonuses);}
+    if(messages!=NULL){arrfree(messages);}
+    if(cued_SFX!=NULL){arrfree(cued_SFX);}
+
 
     //audio free, free any loaded sounds and the list that stores reference to them
     //strictly speaking this is unneccessary as MIX_Quit() deallocates everyhting it

@@ -600,7 +600,7 @@ void input_free(){
 
 void input_remove_controller(int which){
 	for(int i=0;i<arrlen(_input_controller_list);i++){
-		if(_input_controller_list[i].id==which){
+		if((int)_input_controller_list[i].id==which){
 			SDL_Log("deleting controller %d, index %d\n",which,i);
 			if(which>0){
 				SDL_CloseGamepad(_input_controller_list[i].pad);
@@ -644,7 +644,7 @@ cg_controller *input_get_controller_by_index(int index){
 
 cg_controller *input_get_controller_by_id(int id){
 	for(int i=0;i<arrlen(_input_controller_list);i++){
-		if(_input_controller_list[i].id==id){
+		if(_input_controller_list[i].id==(uint)id){
 			return &_input_controller_list[i];
 		}
 	}

@@ -258,11 +258,12 @@ int atlas_init(texAtlas *tex, char *fullPath, char *imagePath,  SDL_GPUDevice *d
 		char val[256];
 		
 		switch(a_val->type){
-			case json_type_string:
-				struct json_string_s *s=(struct json_string_s*)a_val->payload;
-				SDL_strlcpy(val,(char*)s->string,255);
+			case json_type_string: ;
+				
+				struct json_string_s *ss=(struct json_string_s*)a_val->payload;
+				SDL_strlcpy(val,(char*)ss->string,255);
 				break;
-			case json_type_number:
+			case json_type_number: ;
 				struct json_number_s *n=(struct json_number_s*)a_val->payload;
 				SDL_strlcpy(val,n->number,255);
 				break;
@@ -270,7 +271,7 @@ int atlas_init(texAtlas *tex, char *fullPath, char *imagePath,  SDL_GPUDevice *d
 
 				break;
 
-			case json_type_array:
+			case json_type_array: ;
 				struct json_array_s *arr=(struct json_array_s*)a_val->payload;
 				tex->count=arr->length;
 				tex->images=SDL_malloc(sizeof(texAtlasImage)*tex->count);
@@ -288,34 +289,34 @@ int atlas_init(texAtlas *tex, char *fullPath, char *imagePath,  SDL_GPUDevice *d
 						while(arrobjel!=NULL){
 							
 							struct json_string_s *isit=(struct json_string_s*)arrobjel->name;
-							struct json_value_s *arrval=(struct json_value_s*)arrobjel->value;
+							struct json_value_s *arrval2=(struct json_value_s*)arrobjel->value;
 
 							if(SDL_strcmp((char*)isit->string,"Name")==0){
-								struct json_string_s *elname=(struct json_string_s*)arrval->payload;
+								struct json_string_s *elname=(struct json_string_s*)arrval2->payload;
 								SDL_strlcpy(tex->images[index].name,(char*)elname->string,255);
 							}else if(SDL_strcmp((char*)isit->string,"X")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].x=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"Y")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].y=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"W")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].w=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"H")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].h=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"TrimOffsetX")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].trimOffsetX=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"TrimOffsetY")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].trimOffsetY=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"UntrimmedWidth")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].untrimmedWidth=SDL_atoi((char*)elval->number);
 							}else if(SDL_strcmp((char*)isit->string,"UntrimmedHeight")==0){
-								struct json_number_s *elval=(struct json_number_s*)arrval->payload;
+								struct json_number_s *elval=(struct json_number_s*)arrval2->payload;
 								tex->images[index].untrimmedHeight=SDL_atoi((char*)elval->number);
 							}
 
@@ -357,7 +358,7 @@ int atlas_init(texAtlas *tex, char *fullPath, char *imagePath,  SDL_GPUDevice *d
 	}
 
 	//calc uv coords
-	for(int i=0;i<tex->count;i++){
+	for(size_t i=0;i<tex->count;i++){
 		tex->images[i].u=(float)tex->images[i].x/(float)tex->w;
 		tex->images[i].v=(float)tex->images[i].y/(float)tex->h;
 		tex->images[i].uw=(float)tex->images[i].w/(float)tex->w;
@@ -405,11 +406,14 @@ void atlas_print_info(texAtlas *atlas){
 
 void atlas_print_image_info(texAtlas *atlas){
 	
-	for(int i=0;i<atlas->count;i++){
+	for(size_t i=0;i<atlas->count;i++){
 
-
-
-		SDL_Log("atlas image %d;  name %s\n\t\t x %d - u %f\n\t\t y %d - v %f\n\t\t w %d - uw %f\n\t\t h %d - uh %f\n\t\t trimOffsetX %d\n\t\t trimOffsetY %d\n\t\t untrimmedWidth %d\n\t\t untrimmedHeight %d\n\t\t\n",
+		//shut mingw up
+		#ifdef __WIN32
+		SDL_Log("atlas image %lld;  name %s\n\t\t x %d - u %f\n\t\t y %d - v %f\n\t\t w %d - uw %f\n\t\t h %d - uh %f\n\t\t trimOffsetX %d\n\t\t trimOffsetY %d\n\t\t untrimmedWidth %d\n\t\t untrimmedHeight %d\n\t\t\n",
+		#else
+		SDL_Log("atlas image %ld;  name %s\n\t\t x %d - u %f\n\t\t y %d - v %f\n\t\t w %d - uw %f\n\t\t h %d - uh %f\n\t\t trimOffsetX %d\n\t\t trimOffsetY %d\n\t\t untrimmedWidth %d\n\t\t untrimmedHeight %d\n\t\t\n",
+		#endif
 								i,
 								atlas->images[i].name,
 								atlas->images[i].x, atlas->images[i].u,
@@ -430,7 +434,7 @@ void atlas_print_image_info(texAtlas *atlas){
 
 void atlas_print_image_names(texAtlas *atlas){
 	
-	for(int i=0;i<atlas->count;i++){
+	for(size_t i=0;i<atlas->count;i++){
 		SDL_Log("image name %s\n",atlas->images[i].name);
 	}
 }
