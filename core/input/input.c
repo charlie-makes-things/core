@@ -7,6 +7,7 @@ typedef enum cg_controller_type{
 	CONTROLLER_TYPE_MOUSE,
 	CONTROLLER_TYPE_TOUCH,
 	CONTROLLER_TYPE_GAMEPAD,
+	CONTROLLER_TYPE_KEYBOARD_AND_MOUSE,
 	CONTROLLER_TYPE_INVALID
 }cg_controller_type;
 
@@ -125,6 +126,7 @@ static cg_controller_button_map _default_button;
 
 static bool _input_has_keyboard=false;
 static bool _input_has_mouse=false;
+static bool _input_separate_mouse_and_keyboard=true;
 static cg_mouse_data _input_mouse_data;
 
 static MIX_Track *_input_connectedTrack=NULL;
@@ -431,7 +433,7 @@ void cg_controller_set_default_keymap(cg_controller *c){
 	c->map.dpadRight=_default_map.dpadRight;
 }
 
-SDL_AppResult input_init(MIX_Mixer *mixer){
+SDL_AppResult input_init(MIX_Mixer *mixer,bool separate_mouse_and_keyboard){
 	
 
 
@@ -527,21 +529,50 @@ SDL_AppResult input_init(MIX_Mixer *mixer){
 	if(SDL_HasKeyboard()){
         SDL_Log("found keyboard\n");
     }
-    if(SDL_HasMouse()){
-        SDL_Log("found mouse\n");
-        cg_controller c;
-        cg_controller_init(&c,CONTROLLER_TYPE_MOUSE,NULL,0,0,arrlen(_input_controller_list));
-        arrpush(_input_controller_list,c);
-        _input_has_mouse=true;
-    }
+
+    //mouse and keyboard as separate controllers
+    if(separate_mouse_and_keyboard==true){
+    	_input_separate_mouse_and_keyboard=true;
+    	if(SDL_HasMouse()){
+	        SDL_Log("found mouse\n");
+	        cg_controller c;
+	        cg_controller_init(&c,CONTROLLER_TYPE_MOUSE,NULL,0,0,arrlen(_input_controller_list));
+	        arrpush(_input_controller_list,c);
+	        _input_has_mouse=true;
+	    }
 
 
-    if(SDL_HasScreenKeyboardSupport()==false && SDL_HasKeyboard()==true){
-        cg_controller c;
-        cg_controller_init(&c,CONTROLLER_TYPE_KEYBOARD, NULL,0,8000,arrlen(_input_controller_list));        
-        arrpush(_input_controller_list,c);
-        _input_has_keyboard=true;     
+	    if(SDL_HasScreenKeyboardSupport()==false && SDL_HasKeyboard()==true){
+	        cg_controller c;
+	        cg_controller_init(&c,CONTROLLER_TYPE_KEYBOARD, NULL,0,8000,arrlen(_input_controller_list));        
+	        arrpush(_input_controller_list,c);
+	        _input_has_keyboard=true;     
+	    }
+	//mouse and keyboard as one controller
+    }else{
+
+    	_input_separate_mouse_and_keyboard=false;
+
+    	if(SDL_HasMouse()==true){
+
+    		if(SDL_HasScreenKeyboardSupport()==false && SDL_HasKeyboard()==true){
+	    		cg_controller c;
+		        cg_controller_init(&c,CONTROLLER_TYPE_KEYBOARD_AND_MOUSE, NULL,0,8000,arrlen(_input_controller_list));        
+		        arrpush(_input_controller_list,c);
+		        _input_has_keyboard=true;
+		        _input_has_mouse=true;
+		        SDL_Log("input - adding mouse+key controller");
+    		}else{
+    			SDL_Log("input - physical keyboard found\n");
+    		}
+
+    	}else{
+    		SDL_Log("input - no mouse\n");
+    	}
+
     }
+
+    
 
    _input_activeController=NULL;
 
@@ -672,6 +703,8 @@ const char *cg_controller_get_name(cg_controller *c){
 		return "keyboard";
 	}else if (c->type==CONTROLLER_TYPE_MOUSE){
 		return "mouse";
+	}else if(c->type==CONTROLLER_TYPE_KEYBOARD_AND_MOUSE){
+		return "mouse and keyboard";
 	}else{
 		return SDL_GetGamepadName(c->pad);
 	}
@@ -872,10 +905,85 @@ void cg_controller_update(cg_controller *c){
 
 		
 		_input_mouse_data.mouseRelX=0.0;
-	_input_mouse_data.mouseRelY=0.0;
-	_input_mouse_data.mouseWheelX=0.0;
-	_input_mouse_data.mouseWheelY=0.0;
+		_input_mouse_data.mouseRelY=0.0;
+		_input_mouse_data.mouseWheelX=0.0;
+		_input_mouse_data.mouseWheelY=0.0;
 		
+	}else if(c->type==CONTROLLER_TYPE_KEYBOARD_AND_MOUSE){
+
+		const bool *key_states = SDL_GetKeyboardState(NULL);
+
+		Sint16 left_up=(key_states[c->map.left_up]==true) ? 32768 : 0;
+		Sint16 left_down=(key_states[c->map.left_down]==true) ? 32768 : 0;
+		Sint16 left_left=(key_states[c->map.left_left]==true) ? 32768 : 0;
+		Sint16 left_right=(key_states[c->map.left_right]==true) ? 32768 : 0;
+		Sint16 trigL=(key_states[c->map.trigL]==true) ? 32768 : 0;
+		Sint16 trigR=(key_states[c->map.trigR]==true) ? 32768 : 0;
+		Sint16 key_a=((key_states[c->map.key_a]==true) ? 1 : 0);
+		Sint16 key_b=(key_states[c->map.key_b]==true) ? 1 : 0;
+		Sint16 key_lb=(key_states[c->map.key_lb]==true) ? 1 : 0;
+		Sint16 key_rb=(key_states[c->map.key_rb]==true) ? 1 : 0;
+		Sint16 key_start=(key_states[c->map.key_start]==true) ? 1 : 0;
+		Sint16 key_select=(key_states[c->map.key_select]==true) ? 1 : 0;
+		Sint16 dpadUp=(key_states[c->map.dpadUp]==true) ? 1 : 0;
+		Sint16 dpadDown=(key_states[c->map.dpadDown]==true) ? 1 : 0;
+		Sint16 dpadLeft=(key_states[c->map.dpadLeft]==true) ? 1 : 0;
+		Sint16 dpadRight=(key_states[c->map.dpadRight]==true) ? 1 : 0;
+
+		c->lastStates.leftX=c->states.leftX;
+	    c->lastStates.leftY=c->states.leftY;
+	    c->lastStates.rightX=c->states.rightX;
+	    c->lastStates.rightY=c->states.rightY;
+	    c->lastStates.trigL=c->states.trigL;
+	    c->lastStates.trigR=c->states.trigR;
+	    
+	    c->lastButtons.dpadUp=c->buttons.dpadUp;
+	    c->lastButtons.dpadDown=c->buttons.dpadDown;
+	    c->lastButtons.dpadLeft=c->buttons.dpadLeft;
+	    c->lastButtons.dpadRight=c->buttons.dpadRight;
+	    c->lastButtons.buttonA=c->buttons.buttonA ;
+		c->lastButtons.buttonB=c->buttons.buttonB ;
+		c->lastButtons.buttonX=c->buttons.buttonX;
+		c->lastButtons.buttonY=c->buttons.buttonY;
+		c->lastButtons.buttonLB=c->buttons.buttonLB;
+		c->lastButtons.buttonRB=c->buttons.buttonRB;
+		c->lastButtons.buttonStart=c->buttons.buttonStart;
+		c->lastButtons.buttonSelect=c->buttons.buttonSelect;
+		c->lastButtons.stickL=c->buttons.stickL;
+		c->lastButtons.stickR=c->buttons.stickR;
+
+		
+		c->states.leftX=(left_left-left_right)+((dpadRight-dpadLeft)*32768);
+	    c->states.leftY=(left_up-left_down)+((dpadDown-dpadUp)*32768);
+	    c->states.rightX=_input_mouse_data.mouseRelX*8000;
+	    c->states.rightY=_input_mouse_data.mouseRelY*8000;
+	    c->states.trigL=-trigL;
+	    c->states.trigR=-trigR;
+	    
+	    c->buttons.dpadUp=0;
+	    c->buttons.dpadDown=0;
+	    c->buttons.dpadLeft=0;
+	    c->buttons.dpadRight=0;
+	    c->buttons.buttonA=key_a+(_input_mouse_data.mouseLeft==true ? 1:0);
+		c->buttons.buttonB=key_b+(_input_mouse_data.mouseRight==true ? 1:0);
+		c->buttons.buttonX=_input_mouse_data.mouseMiddle==true ? 1:0;
+		c->buttons.buttonY=_input_mouse_data.mouseX1==true ? 1:0;
+		c->buttons.buttonLB=key_lb+(_input_mouse_data.mouseRight==true ? 1:0);
+		c->buttons.buttonRB=key_rb+(_input_mouse_data.mouseRight==true ? 1:0);
+		c->buttons.buttonStart=key_start;
+		c->buttons.buttonSelect=key_select;
+		c->buttons.stickL=0;
+		c->buttons.stickR=0;
+
+	   
+	   
+
+
+
+		_input_mouse_data.mouseRelX=0.0;
+		_input_mouse_data.mouseRelY=0.0;
+		_input_mouse_data.mouseWheelX=0.0;
+		_input_mouse_data.mouseWheelY=0.0;	
 	}
 }
 

@@ -74,7 +74,7 @@ SDL_AppResult core_init(SDL_GPUDevice **dev,SDL_Window **win, int width, int hei
     if(init_graphics(dev,win,width,height,title,fullScreen)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     //input plays sounds when you connect/disconnect controllers so send it the mixer handle
     //input adds a mouse and a keyboard controller by default
-    if(input_init(*mixer)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
+    if(input_init(*mixer,false)==SDL_APP_FAILURE) return SDL_APP_FAILURE;
     cg_popup_message_init(popupFontScale);
     init_framerate();
     return SDL_APP_CONTINUE;
